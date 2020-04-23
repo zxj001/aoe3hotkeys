@@ -1,3 +1,15 @@
+1. look for Age of Empires 3 installation
+2. Load user profile. If not found, warn user to create a new profile
+3. Let user select profile
+4. show hotkeys page
+
+**MVP**
+
+* searchable hot keys
+* shows conflicts
+* shows changes
+* shows unsaved changes
+
 # electron-quick-start
 
 **Clone and run for a quick way to see Electron in action.**

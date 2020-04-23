@@ -2,22 +2,46 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import routes from '../constants/routes.json';
 import styles from './Home.css';
+import KeyMapPage from './KeyMap';
 
 const path = window.require('path')
 const fs = window.require('fs')
 const xml2js = window.require('xml2js')
 const homedir = window.require('os').homedir();
 
-export default function Home() {
-  const isXmlFile = (filePath: string) => {
-      return path.extname(filePath).toLowerCase() == ".xml";
-  }
+const isXmlFile = (filePath: string) => {
+  return path.extname(filePath).toLowerCase() == ".xml";
+}
 
-  const isUserProfile = (xmlObject) => {
-      console.log(xmlObject["Profile"])
-  }
+const isUserProfile = (xmlObject: Object) => {
+return "Profile" in xmlObject && xmlObject["Profile"]["$"]["GameID"] === "2" &&
+    "KeyMapGroups" in xmlObject["Profile"]
+}
 
-  const loadUserProfile = () => {
+const getKeyMapGroups = (xmlObject: Object) => {
+  if (xmlObject && "Profile" in xmlObject && xmlObject["Profile"]["$"]["GameID"] === "2") {
+    return xmlObject["Profile"]["KeyMapGroups"];
+  }
+  console.log("Invalid UserProfile")
+  return undefined;
+}
+
+const printKeyMap = (keyMap: Object) => {
+  if (keyMap) {
+    return JSON.stringify(keyMap);
+  }
+}
+
+class Home extends React.Component {
+
+  constructor(props: Object) {
+    super(props);
+    this.loadUserProfile.bind(this);
+
+    this.state = {KeyMapGroups:undefined}
+   }
+
+  loadUserProfile() {
       // Load hotkeyfile
       const aoe3UserDir = path.join(homedir, "Documents/My Games/Age of Empires 3/Users3")
       console.log(aoe3UserDir)
@@ -57,17 +81,35 @@ export default function Home() {
       // The user profile XML file is UTf-16 encoded
       let userProfileData = fs.readFileSync(userFilePath, "UCS-2")
       console.log(userProfileData)
-      parser.parseString(userProfileData, function(error, result) {
-          console.dir(result);
+      const handleUserProfileLoading = (error, result) => {
+          // console.dir(result);
           console.log('Done');
-          isUserProfile(result)
-      });
+          let keyMap = getKeyMapGroups(result)
+          if (keyMap) {
+            this.setState({UserProfile : result});
+            console.dir(result);
+            console.log("Saved UserProfile")
+          } else {
+            console.log("Invalid UserProfile")
+          }
+      }
+      handleUserProfileLoading.bind(this);
+      parser.parseString(userProfileData, handleUserProfileLoading);
   }
-  loadUserProfile();
-  return (
-    <div className={styles.container} data-tid="container">
-      <h2>Age of Empires 3 Hotkey Editor</h2>
-      <Link to={routes.COUNTER}>to Counter</Link>
-    </div>
-  );
+
+  componentDidMount() {
+    this.loadUserProfile();
+  }
+
+  render() {
+    return (
+      <div className={styles.container} data-tid="container">
+        <h2>Age of Empires 3 Hotkey Editor</h2>
+        <Link to={routes.COUNTER}>to Counter</Link>
+        <KeyMapPage keymap={getKeyMapGroups(this.state.UserProfile)}/>
+      </div>
+    );
+  }
 }
+
+export default Home;

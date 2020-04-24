@@ -30,8 +30,18 @@ class KeyMapPage extends React.Component {
             return [];
         }
         groupKeyMapList.forEach((km, i) => {
+            const getTextColor = () => {
+                let color = "text-dark";
+                if (km.event != km.defaultevent) {
+                    color = "text-success";
+                }
+                if (km.event != km.prevevent) {
+                    color = "text-danger";
+                }
+                return color;
+            }
             kmList.push(
-                <tr key={index_offset+i}>
+                <tr key={index_offset+i} className={getTextColor()}>
                     <td>{groupName}</td>
                     <td>{km.name}</td>
                     <td>{km.event}</td>
@@ -68,7 +78,7 @@ class KeyMapPage extends React.Component {
 
     render() {
         return (
-            <table className="overflow-auto vh-75 table">
+            <table className="overflow-auto vh-75 table table-striped">
                 <thead>
                     <tr>
                         <th scope="col">Group</th>

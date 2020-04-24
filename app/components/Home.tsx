@@ -9,6 +9,8 @@ const fs = window.require('fs')
 const xml2js = window.require('xml2js')
 const homedir = window.require('os').homedir();
 
+const DEFAULT_KEYMAP_TAG = "defaultkeymapy";
+
 const isXmlFile = (filePath: string) => {
   return path.extname(filePath).toLowerCase() == ".xml";
 }
@@ -27,8 +29,8 @@ const getKeyMapGroups = (xmlObject: Object) => {
 }
 
 const getDefaultKeyMap = (xmlObject: Object) => {
-  if (xmlObject && "DefaultKeyMap" in xmlObject) {
-    return xmlObject["DefaultKeyMap"];
+  if (xmlObject && DEFAULT_KEYMAP_TAG in xmlObject) {
+    return xmlObject[DEFAULT_KEYMAP_TAG];
   }
   console.log("Invalid default key map")
   return undefined;

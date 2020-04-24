@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import routes from '../constants/routes.json';
-import styles from './Home.css';
+// import styles from './Home.css';
 import KeyMapPage from './KeyMap';
 
 const path = window.require('path')
@@ -103,7 +103,7 @@ class Home extends React.Component {
 
   render() {
     return (
-      <div className={styles.container} data-tid="container">
+      <div>
         <h2>Age of Empires 3 Hotkey Editor</h2>
         <Link to={routes.COUNTER}>to Counter</Link>
         <KeyMapPage keymap={getKeyMapGroups(this.state.UserProfile)}/>

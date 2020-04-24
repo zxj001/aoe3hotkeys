@@ -1,7 +1,7 @@
 import React from 'react';
+
 import { Link } from 'react-router-dom';
 import routes from '../constants/routes.json';
-import styles from './Home.css';
 import { POINT_CONVERSION_COMPRESSED } from 'constants';
 
 const path = window.require('path')
@@ -111,7 +111,7 @@ class KeyMapPage extends React.Component {
 
     render() {
         return (
-            <div>
+            <div className="overflow-auto vh-75">
                 {this.groupList()}
             </div>
         );

@@ -44,7 +44,7 @@ class KeyMapPage extends React.Component {
                 <tr key={index_offset+i} className={getTextColor()}>
                     <td>{groupName}</td>
                     <td>{km.name}</td>
-                    <td>{km.event}</td>
+                    <td className="text-monospace font-weight-bold">{km.event}</td>
                     <td>{km.action}</td>
                 </tr>
             );

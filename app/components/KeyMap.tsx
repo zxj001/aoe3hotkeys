@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import {HotKeyDict, HotKeyValue} from './HotKeyDict';
 
 const path = window.require('path')
@@ -24,14 +24,6 @@ class KeyMapPage extends React.Component {
         }
     }
 
-    getGroupName(group) {
-        return group["$"]["Name"];
-    }
-
-    getGroupKeyMap(group) {
-        return group["KeyMap"];
-    }
-
     keysList(groupKeyMapList: Array<HotKeyValue>, groupName: string, index_offset: number) {
         let kmList = [];
         if (!groupKeyMapList || groupKeyMapList.length <= 0 || !groupName || index_offset < 0) {
@@ -39,7 +31,7 @@ class KeyMapPage extends React.Component {
         }
         groupKeyMapList.forEach((km, i) => {
             kmList.push(
-                <tr>
+                <tr key={index_offset+i}>
                     <td>{groupName}</td>
                     <td>{km.name}</td>
                     <td>{km.event}</td>
@@ -50,18 +42,17 @@ class KeyMapPage extends React.Component {
         return kmList;
     }
 
-
     groupList() {
-        console.dir(this.state);
-        // if (!this.state || !this.state.keyMapGroups) {
-        //     console.log("Cannot load keymap. (listing)");
-        //     return []
-        // }
-        if (!this.props || !this.props.keymap || this.props.keymap.length <= 0) {
+        if (!this.props || !this.props.keymap || this.props.keymap.length <= 0 ||
+            !this.props.defaultkeymap || this.props.defaultkeymap.length <= 0) {
             console.log("Cannot load keymap. (listing)");
             return [];
         }
-        let hotKeyDict = new HotKeyDict(this.props.keymap);
+        // TODO Make this less ugly with constructor
+        let defaultHotKeyDict = new HotKeyDict().fromDefaultKeyMap(this.props.defaultkeymap);
+        console.log("Default key map dict:");
+        console.dir(defaultHotKeyDict);
+        let hotKeyDict = new HotKeyDict().fromDefaultKeyMap(this.props.defaultkeymap).fromUserKeyMap(this.props.keymap);
         if (!hotKeyDict) {
             console.log("Cannot load keymap. (listing)");
             return [];

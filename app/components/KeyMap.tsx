@@ -1,5 +1,6 @@
 import React, { ReactElement } from 'react';
 import {HotKeyDict, HotKeyValue} from './HotKeyDict';
+import { stringify } from 'querystring';
 
 const path = window.require('path')
 const fs = window.require('fs')
@@ -24,7 +25,7 @@ class KeyMapPage extends React.Component {
         }
     }
 
-    keysList(groupKeyMapList: Array<HotKeyValue>, groupName: string, index_offset: number) {
+    keysList(groupKeyMapList: Array<HotKeyValue>, groupName: string, conflictingKeys: Map<string, Array<HotKeyValue>>, index_offset: number) {
         let kmList = [];
         if (!groupKeyMapList || groupKeyMapList.length <= 0 || !groupName || index_offset < 0) {
             return [];
@@ -40,11 +41,17 @@ class KeyMapPage extends React.Component {
                 }
                 return color;
             }
+            let conflicts = conflictingKeys.get(km.event);
+            let conflictsValue = 0;
+            if (conflicts && conflicts.length > 0) {
+                conflictsValue = conflicts.length - 1;
+            }
             kmList.push(
                 <tr key={index_offset+i} className={getTextColor()}>
                     <td>{groupName}</td>
                     <td>{km.name}</td>
                     <td className="text-monospace font-weight-bold">{km.event}</td>
+                    <td>{conflictsValue}</td>
                     <td>{km.action}</td>
                 </tr>
             );
@@ -69,10 +76,22 @@ class KeyMapPage extends React.Component {
         }
         let groupList = [];
         let groupRowOffset = 0;
+        let conflictingKeys = new Map<string, Array<HotKeyValue>>();
         hotKeyDict.groups.forEach((keyList, groupName) => {
-            groupList.push(this.keysList(keyList, groupName, groupRowOffset));
-            groupRowOffset += keyList.length;
+            keyList.forEach(KeyValue => {
+                let conflictList = conflictingKeys.get(KeyValue.event);
+                if (!conflictList) {
+                    conflictList = new Array<HotKeyValue>();
+                    conflictingKeys.set(KeyValue.event, conflictList);
+                }
+                conflictList.push(KeyValue);
+            });
         })
+
+        hotKeyDict.groups.forEach((keyList, groupName) => {
+            groupList.push(this.keysList(keyList, groupName, conflictingKeys, groupRowOffset));
+            groupRowOffset += keyList.length;
+        });
         return groupList;
     }
 
@@ -84,6 +103,7 @@ class KeyMapPage extends React.Component {
                         <th scope="col">Group</th>
                         <th scope="col">Name</th>
                         <th scope="col">Event</th>
+                        <th scope="col">Conflicts</th>
                         <th scope="col">Action</th>
                     </tr>
                 </thead>

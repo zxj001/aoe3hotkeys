@@ -32,7 +32,7 @@ class KeyMapPage extends React.Component {
         return group["KeyMap"];
     }
 
-    keysList(groupKeyMapList: Array<Object>, groupName: string, index_offset: number) {
+    keysList(groupKeyMapList: Array<HotKeyValue>, groupName: string, index_offset: number) {
         let kmList = [];
         if (!groupKeyMapList || groupKeyMapList.length <= 0 || !groupName || index_offset < 0) {
             return [];
@@ -41,9 +41,9 @@ class KeyMapPage extends React.Component {
             kmList.push(
                 <tr>
                     <td>{groupName}</td>
-                    <td>{km["Name"]}</td>
-                    <td>{km["Event"]}</td>
-                    <td>{km["Action"]}</td>
+                    <td>{km.name}</td>
+                    <td>{km.event}</td>
+                    <td>{km.action}</td>
                 </tr>
             );
         });
@@ -52,7 +52,6 @@ class KeyMapPage extends React.Component {
 
 
     groupList() {
-        let groupList = [];
         console.dir(this.state);
         // if (!this.state || !this.state.keyMapGroups) {
         //     console.log("Cannot load keymap. (listing)");
@@ -62,22 +61,17 @@ class KeyMapPage extends React.Component {
             console.log("Cannot load keymap. (listing)");
             return [];
         }
-        let groupObject = this.props.keymap[0]["Group"];
-        console.log("check keymap");
-        console.dir(new HotKeyDict(this.props.keymap));
-        if (!groupObject) {
+        let hotKeyDict = new HotKeyDict(this.props.keymap);
+        if (!hotKeyDict) {
             console.log("Cannot load keymap. (listing)");
             return [];
         }
-        if (groupObject) {
-            let groupRowOffset = 0;
-            groupObject.forEach((group, i) => {
-                let keyList = this.getGroupKeyMap(group);
-                const groupName = this.getGroupName(group);
-                groupList.push(this.keysList(keyList, groupName, groupRowOffset));
-                groupRowOffset += keyList.length;
-            })
-        }
+        let groupList = [];
+        let groupRowOffset = 0;
+        hotKeyDict.groups.forEach((keyList, groupName) => {
+            groupList.push(this.keysList(keyList, groupName, groupRowOffset));
+            groupRowOffset += keyList.length;
+        })
         return groupList;
     }
 

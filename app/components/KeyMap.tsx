@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import {HotKeyDict, HotKeyValue} from './HotKeyDict';
+import { HotKeyDict, HotKeyValue } from './HotKeyDict';
 import { stringify } from 'querystring';
 
 const path = window.require('path')
@@ -15,6 +15,8 @@ class KeyMapPage extends React.Component {
         let keymap = props.keymap;
         this.groupList.bind(this);
         this.render.bind(this);
+        this.showSelectedRow.bind(this);
+        this.keysList.bind(this);
         if (keymap !== undefined && keymap.length > 0 && "Group" in keymap[0]) {
             let groupObject = keymap[0]["Group"];
             console.dir(groupObject);
@@ -22,6 +24,18 @@ class KeyMapPage extends React.Component {
             console.log("Saved state");
         } else {
             console.log("Failed to load keymap. (constructor)")
+        }
+    }
+
+    showSelectedRow() {
+        if (this.state && this.state.selectedRow) {
+            return <div>
+                <h3>{this.state.selectedRow.name}</h3>
+                <p>{this.state.selectedRow.event}</p>
+                <p>{this.state.conflictsText}</p>
+            </div>
+        } else {
+            return <p>Select a row</p>
         }
     }
 
@@ -43,11 +57,27 @@ class KeyMapPage extends React.Component {
             }
             let conflicts = conflictingKeys.get(km.event);
             let conflictsValue = 0;
-            if (conflicts && conflicts.length > 0) {
-                conflictsValue = conflicts.length - 1;
+            let conflictsText = <p>No conflicting keys.</p>;
+            if (conflicts && conflicts.length > 1) {
+                conflictsValue = conflicts.length - 1; // subtract one for the current key.
+                let conflictsJsx = [];
+                conflicts.forEach(conflict => {
+                    if (conflict.name != km.name) {
+                        conflictsJsx.push(<li>{conflict.name}</li>);
+                    }
+                })
+                conflictsText = <p>Conflicting keys:{conflictsJsx}</p>;
             }
+
+            const selectRow = () => {
+                this.setState({
+                    selectedRow: km,
+                    conflictsText: conflictsText
+                });
+            }
+            selectRow.bind(this);
             kmList.push(
-                <tr key={index_offset+i} className={getTextColor()}>
+                <tr key={index_offset + i} className={getTextColor()} onClick={selectRow}>
                     <td>{groupName}</td>
                     <td>{km.name}</td>
                     <td className="text-monospace font-weight-bold">{km.event}</td>
@@ -97,20 +127,29 @@ class KeyMapPage extends React.Component {
 
     render() {
         return (
-            <table className="overflow-auto vh-75 table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">Group</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Event</th>
-                        <th scope="col">Conflicts</th>
-                        <th scope="col">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {this.groupList()}
-                </tbody>
-            </table>
+            <div>
+                <div className="row">
+                    <div className="col-6 overflow-auto container">
+                        <table className="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Group</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Event</th>
+                                    <th scope="col">Conflicts</th>
+                                    <th scope="col">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {this.groupList()}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="col-6">
+                        {this.showSelectedRow()}
+                    </div>
+                </div>
+            </div>
         );
     }
 }

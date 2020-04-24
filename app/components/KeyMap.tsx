@@ -35,18 +35,13 @@ class KeyMap_Group extends React.Component {
             return [];
         }
         this.getKeyMap().forEach((km, i) => {
-            kmList.push(<KeyMap_Key  keyval={km} key={i} />);
+            kmList.push(<KeyMap_Key keyval={km} key={i} />);
         });
         return kmList;
     }
 
     render() {
-        return (
-            <div>
-                <h2>{this.getName()}</h2>
-                {this.groupList()}
-            </div>
-        );
+        return this.groupList();
     }
 }
 
@@ -77,12 +72,39 @@ class KeyMapPage extends React.Component {
         if (keymap !== undefined && keymap.length > 0 && "Group" in keymap[0]) {
             let groupObject = keymap[0]["Group"];
             console.dir(groupObject);
-            this.state = { keyMapGroups: groupObject};
+            this.state = { keyMapGroups: groupObject };
             console.log("Saved state");
         } else {
             console.log("Failed to load keymap. (constructor)")
         }
     }
+
+    getGroupName(group) {
+        return group["$"]["Name"];
+    }
+
+    getGroupKeyMap(group) {
+        return group["KeyMap"];
+    }
+
+    keysList(groupKeyMapList: Array<Object>, groupName: string, index_offset: number) {
+        let kmList = [];
+        if (!groupKeyMapList || groupKeyMapList.length <= 0 || !groupName || index_offset < 0) {
+            return [];
+        }
+        groupKeyMapList.forEach((km, i) => {
+            kmList.push(
+                <tr>
+                    <td>{groupName}</td>
+                    <td>{km["Name"]}</td>
+                    <td>{km["Event"]}</td>
+                    <td>{km["Action"]}</td>
+                </tr>
+            );
+        });
+        return kmList;
+    }
+
 
     groupList() {
         let groupList = [];
@@ -102,8 +124,12 @@ class KeyMapPage extends React.Component {
             return [];
         }
         if (groupObject) {
+            let groupRowOffset = 0;
             groupObject.forEach((group, i) => {
-                groupList.push(<KeyMap_Group group={group} key={i}/>);
+                let keyList = this.getGroupKeyMap(group);
+                const groupName = this.getGroupName(group);
+                groupList.push(this.keysList(keyList, groupName, groupRowOffset));
+                groupRowOffset += keyList.length;
             })
         }
         return groupList;
@@ -111,9 +137,19 @@ class KeyMapPage extends React.Component {
 
     render() {
         return (
-            <div className="overflow-auto vh-75">
-                {this.groupList()}
-            </div>
+            <table className="overflow-auto vh-75 table">
+                <thead>
+                    <tr>
+                        <th scope="col">Group</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Event</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {this.groupList()}
+                </tbody>
+            </table>
         );
     }
 }

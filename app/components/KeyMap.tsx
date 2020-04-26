@@ -129,7 +129,7 @@ class KeyMapPage extends React.Component {
         return (
             <div>
                 <div className="row">
-                    <div className="col-6 overflow-auto container">
+                    <div className="col-6 overflow-auto container" style={{height: "75vh"}}>
                         <table className="table table-striped">
                             <thead>
                                 <tr>

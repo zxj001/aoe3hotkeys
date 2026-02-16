@@ -1,5 +1,10 @@
-// All of the Node.js APIs are available in the preload process.
-// It has the same sandbox as a Chrome extension.
+// Preload runs in a privileged context and exposes a minimal API to the renderer.
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('api', {
+  onXml: (callback) => ipcRenderer.on('xml-data', (event, data) => callback(data))
+})
+
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector)

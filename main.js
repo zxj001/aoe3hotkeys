@@ -33,11 +33,12 @@ function createWindow () {
   mainWindow.loadFile('index.html')
 
   // Load hotkeyfile
-  const aoe3UserDir = path.join(homedir, "Documents/My Games/Age of Empires 3/Users3")
-  console.log(aoe3UserDir)
+  const DEFAULT_AOE3_USER_DIR = path.join(homedir, "Documents/My Games/Age of Empires 3/Users3")
+  console.log(DEFAULT_AOE3_USER_DIR)
+  let aoe3UserDir = DEFAULT_AOE3_USER_DIR
 
   try {
-    if (fs.existsSync(aoe3UserDir)) {
+    if (fs.existsSync(DEFAULT_AOE3_USER_DIR)) {
       console.log("Age of Empires 3 user directory exists.")
     } else {
       console.log("Directory does not exist.")
@@ -72,7 +73,17 @@ function createWindow () {
   let userProfileData = fs.readFileSync(userFilePath, "UCS-2")
   console.log(userProfileData)
   parser.parseString(userProfileData, function (err, result) {
-      console.dir(result);
+      if (err) {
+        console.error('XML parse error', err)
+      } else {
+        console.dir(result);
+      }
+      // Send raw XML text and parsed JSON to renderer for display
+      try {
+        mainWindow.webContents.send('xml-data', { xml: userProfileData, json: result })
+      } catch (sendErr) {
+        console.error('Failed to send xml-data to renderer', sendErr)
+      }
       console.log('Done');
   });
   // Open the DevTools.

@@ -94,30 +94,31 @@ function copyXml() {
 	console.log('window.api:', window.api);
 	console.log('window.api.writeToClipboard:', window.api ? window.api.writeToClipboard : 'no api');
 	
-	try {
-		if (window.api && window.api.writeToClipboard) {
-			// Use Electron's clipboard
-			console.log('Using Electron clipboard');
-			window.api.writeToClipboard(currentXmlData);
-			console.log('Clipboard write completed, calling showStatus');
-			showStatus('XML copied to clipboard!');
-		} else if (navigator.clipboard) {
-			// Fallback to browser clipboard API
-			console.log('Using navigator.clipboard');
-			navigator.clipboard.writeText(currentXmlData).then(() => {
-				console.log('Navigator clipboard write succeeded');
+	if (window.api && window.api.writeToClipboard) {
+		// Use Electron's clipboard via IPC
+		console.log('Using Electron clipboard via IPC');
+		window.api.writeToClipboard(currentXmlData)
+			.then(() => {
+				console.log('Clipboard write succeeded');
 				showStatus('XML copied to clipboard!');
-			}).catch(err => {
-				console.error('Failed to copy:', err);
-				alert('Failed to copy to clipboard: ' + err.message);
+			})
+			.catch(err => {
+				console.error('Clipboard write failed:', err);
+				showStatus('Failed to copy: ' + err.message, true);
 			});
-		} else {
-			console.log('No clipboard API available');
-			alert('Clipboard API not available');
-		}
-	} catch (err) {
-		console.error('Copy error:', err);
-		alert('Error copying to clipboard: ' + err.message);
+	} else if (navigator.clipboard) {
+		// Fallback to browser clipboard API
+		console.log('Using navigator.clipboard');
+		navigator.clipboard.writeText(currentXmlData).then(() => {
+			console.log('Navigator clipboard write succeeded');
+			showStatus('XML copied to clipboard!');
+		}).catch(err => {
+			console.error('Failed to copy:', err);
+			showStatus('Failed to copy: ' + err.message, true);
+		});
+	} else {
+		console.log('No clipboard API available');
+		showStatus('Clipboard API not available', true);
 	}
 }
 

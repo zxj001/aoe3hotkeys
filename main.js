@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, clipboard } = require('electron')
 const path = require('path')
 const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile } = require('./aoe3FileLoader')
 
@@ -130,6 +130,19 @@ ipcMain.handle('select-new-profile', async (event) => {
     return { success: true }
   } catch (err) {
     console.error('Error selecting new profile:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Write text to clipboard
+ipcMain.handle('write-to-clipboard', async (event, text) => {
+  try {
+    console.log('Writing to clipboard, text length:', text ? text.length : 0)
+    clipboard.writeText(text)
+    console.log('Clipboard write successful')
+    return { success: true }
+  } catch (err) {
+    console.error('Error writing to clipboard:', err)
     throw err
   }
 })

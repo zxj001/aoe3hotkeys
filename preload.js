@@ -1,11 +1,11 @@
 // Preload runs in a privileged context and exposes a minimal API to the renderer.
-const { contextBridge, ipcRenderer, clipboard } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
   onXml: (callback) => ipcRenderer.on('xml-data', (event, data) => callback(data)),
   selectNewDirectory: () => ipcRenderer.invoke('select-new-directory'),
   selectNewProfile: () => ipcRenderer.invoke('select-new-profile'),
-  writeToClipboard: (text) => clipboard.writeText(text)
+  writeToClipboard: (text) => ipcRenderer.invoke('write-to-clipboard', text)
 })
 
 window.addEventListener('DOMContentLoaded', () => {

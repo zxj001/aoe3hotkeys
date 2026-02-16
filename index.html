@@ -55,6 +55,59 @@
         line-height: 1.5;
         border-radius: 4px;
       }
+      #hotkeys-view {
+        display: none;
+        border: 1px solid #ddd;
+        background-color: #fff;
+        overflow: auto;
+        max-height: 600px;
+        border-radius: 4px;
+      }
+      .hotkey-group {
+        margin-bottom: 20px;
+      }
+      .hotkey-group-title {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        font-weight: bold;
+        font-size: 14px;
+        border-radius: 4px 4px 0 0;
+      }
+      .hotkey-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .hotkey-table th {
+        background-color: #f5f5f5;
+        padding: 10px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #ddd;
+      }
+      .hotkey-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+      }
+      .hotkey-table tr:hover {
+        background-color: #f9f9f9;
+      }
+      .hotkey-key {
+        background-color: #e3f2fd;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-family: 'Consolas', monospace;
+        font-weight: bold;
+        color: #1565c0;
+      }
+      .hotkey-status-bind {
+        color: #4CAF50;
+        font-weight: bold;
+      }
+      .hotkey-status-unbind {
+        color: #f44336;
+        font-weight: bold;
+      }
       .xml-tag { color: #1e88e5; font-weight: bold; }
       .xml-attr { color: #e53935; }
       .xml-value { color: #43a047; }
@@ -66,12 +119,15 @@
     <!-- XML display -->
     <h2>Loaded XML</h2>
     <div class="controls">
+      <button id="view-hotkeys">View Hotkeys</button>
+      <button id="view-raw-xml">View Raw XML</button>
       <button id="select-directory">Select New Directory</button>
       <button id="select-profile">Select New Profile</button>
       <button id="toggle-raw">Toggle Raw/Formatted</button>
       <button id="copy-xml">Copy XML</button>
     </div>
     <div id="status" style="margin: 10px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; display: none;"></div>
+    <div id="hotkeys-view"></div>
     <pre id="xml-content"></pre>
 
     <!-- Renderer script -->

@@ -24,8 +24,8 @@ function createWindow () {
     loadAndSendXml(mainWindow);
   });
 
-  // Open the DevTools for debugging
-  mainWindow.webContents.openDevTools()
+  // Open the DevTools for debugging (disabled by default)
+  // mainWindow.webContents.openDevTools()
 }
 
 async function loadAndSendXml(mainWindow) {

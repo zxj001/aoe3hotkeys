@@ -109,6 +109,29 @@ function selectXmlFile(parentWindow, xmlFiles, defaultPath) {
 }
 
 /**
+ * Always prompt user to select an XML file
+ * @param {BrowserWindow} parentWindow - The parent window for the dialog
+ * @param {string} defaultPath - Default directory path for dialog
+ * @returns {string|null} The selected file path or null if cancelled
+ */
+function promptForXmlFile(parentWindow, defaultPath) {
+  const result = dialog.showOpenDialogSync(parentWindow, {
+    title: 'Select User Profile XML File',
+    defaultPath: defaultPath || homedir,
+    properties: ['openFile'],
+    filters: [{ name: 'XML Files', extensions: ['xml'] }]
+  })
+  
+  if (result && result.length > 0) {
+    console.log("User selected file: " + result[0])
+    return result[0]
+  } else {
+    console.log("User cancelled file selection.")
+    return null
+  }
+}
+
+/**
  * Read and parse an AOE3 user profile XML file
  * @param {string} filePath - Path to the XML file
  * @returns {Promise<{xml: string, json: object, error?: string}>}
@@ -177,8 +200,10 @@ async function loadAoe3Profile(parentWindow) {
 module.exports = {
   loadAoe3Profile,
   selectAoe3Directory,
+  promptForDirectory,
   findXmlFiles,
   selectXmlFile,
+  promptForXmlFile,
   parseXmlFile,
   isXmlFile
 }

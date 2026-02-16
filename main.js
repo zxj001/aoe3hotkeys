@@ -1,7 +1,7 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
-const { loadAoe3Profile, selectAoe3Directory, findXmlFiles, selectXmlFile, parseXmlFile } = require('./aoe3FileLoader')
+const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile } = require('./aoe3FileLoader')
 
 let mainWindow = null;
 
@@ -24,7 +24,7 @@ function createWindow () {
   });
 
   // Open the DevTools for debugging
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 }
 
 async function loadAndSendXml(mainWindow) {
@@ -64,8 +64,8 @@ ipcMain.handle('select-new-directory', async (event) => {
       throw new Error('Main window not available')
     }
     
-    // Prompt for new directory
-    const newDir = selectAoe3Directory(mainWindow)
+    // Always prompt for new directory
+    const newDir = promptForDirectory(mainWindow)
     if (!newDir) {
       throw new Error('No directory selected')
     }
@@ -76,8 +76,8 @@ ipcMain.handle('select-new-directory', async (event) => {
       throw new Error('No XML files found in selected directory')
     }
     
-    // Select file
-    const selectedFile = selectXmlFile(mainWindow, xmlFiles, newDir)
+    // Always prompt for file selection
+    const selectedFile = promptForXmlFile(mainWindow, newDir)
     if (!selectedFile) {
       throw new Error('No file selected')
     }
@@ -109,20 +109,8 @@ ipcMain.handle('select-new-profile', async (event) => {
       throw new Error('Main window not available')
     }
     
-    // Prompt for directory with file selection
-    const newDir = selectAoe3Directory(mainWindow)
-    if (!newDir) {
-      throw new Error('No directory selected')
-    }
-    
-    // Find XML files
-    const xmlFiles = findXmlFiles(newDir)
-    if (xmlFiles.length === 0) {
-      throw new Error('No XML files found')
-    }
-    
-    // Always prompt for file selection
-    const selectedFile = selectXmlFile(mainWindow, xmlFiles, newDir)
+    // Always prompt for file selection (no directory selection needed)
+    const selectedFile = promptForXmlFile(mainWindow)
     if (!selectedFile) {
       throw new Error('No file selected')
     }
@@ -130,7 +118,7 @@ ipcMain.handle('select-new-profile', async (event) => {
     // Parse and send
     const parseResult = await parseXmlFile(selectedFile)
     const props = {
-      aoe3UserDir: newDir,
+      aoe3UserDir: path.dirname(selectedFile),
       userFilePath: selectedFile,
       xml: parseResult.xml,
       json: parseResult.json,

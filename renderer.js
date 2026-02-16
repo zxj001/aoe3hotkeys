@@ -81,12 +81,43 @@ function toggleView() {
 }
 
 function copyXml() {
-	if (currentXmlData && navigator.clipboard) {
-		navigator.clipboard.writeText(currentXmlData).then(() => {
-			alert('XML copied to clipboard!');
-		}).catch(err => {
-			console.error('Failed to copy:', err);
-		});
+	console.log('copyXml called');
+	console.log('currentXmlData exists:', !!currentXmlData);
+	console.log('currentXmlData length:', currentXmlData ? currentXmlData.length : 0);
+	
+	if (!currentXmlData) {
+		console.log('No XML data, showing alert');
+		alert('No XML data to copy');
+		return;
+	}
+	
+	console.log('window.api:', window.api);
+	console.log('window.api.writeToClipboard:', window.api ? window.api.writeToClipboard : 'no api');
+	
+	try {
+		if (window.api && window.api.writeToClipboard) {
+			// Use Electron's clipboard
+			console.log('Using Electron clipboard');
+			window.api.writeToClipboard(currentXmlData);
+			console.log('Clipboard write completed, calling showStatus');
+			showStatus('XML copied to clipboard!');
+		} else if (navigator.clipboard) {
+			// Fallback to browser clipboard API
+			console.log('Using navigator.clipboard');
+			navigator.clipboard.writeText(currentXmlData).then(() => {
+				console.log('Navigator clipboard write succeeded');
+				showStatus('XML copied to clipboard!');
+			}).catch(err => {
+				console.error('Failed to copy:', err);
+				alert('Failed to copy to clipboard: ' + err.message);
+			});
+		} else {
+			console.log('No clipboard API available');
+			alert('Clipboard API not available');
+		}
+	} catch (err) {
+		console.error('Copy error:', err);
+		alert('Error copying to clipboard: ' + err.message);
 	}
 }
 
@@ -122,19 +153,26 @@ async function selectNewProfile() {
 
 // Show status message
 function showStatus(message, isError = false) {
+	console.log('showStatus called with message:', message, 'isError:', isError);
 	const statusEl = document.getElementById('status');
+	console.log('Status element found:', !!statusEl);
+	
 	if (statusEl) {
 		statusEl.textContent = message;
 		statusEl.style.display = 'block';
 		statusEl.style.backgroundColor = isError ? '#ffebee' : '#e3f2fd';
 		statusEl.style.color = isError ? '#c62828' : '#1565c0';
+		console.log('Status element updated and displayed');
 		
 		// Auto-hide after 3 seconds if not an error
 		if (!isError) {
 			setTimeout(() => {
 				statusEl.style.display = 'none';
+				console.log('Status element hidden after timeout');
 			}, 3000);
 		}
+	} else {
+		console.error('Status element not found!');
 	}
 }
 
@@ -146,6 +184,62 @@ window.selectNewProfile = selectNewProfile;
 
 console.log('Renderer loaded');
 console.log('window.api:', window.api);
+console.log('window.copyXml:', typeof window.copyXml);
+console.log('window.toggleView:', typeof window.toggleView);
+
+// Set up event listeners - use a function that can be called immediately or on DOMContentLoaded
+function setupEventListeners() {
+	console.log('Setting up event listeners');
+	
+	const selectDirBtn = document.getElementById('select-directory');
+	const selectProfileBtn = document.getElementById('select-profile');
+	const toggleBtn = document.getElementById('toggle-raw');
+	const copyBtn = document.getElementById('copy-xml');
+	
+	console.log('Buttons found:', {
+		selectDir: !!selectDirBtn,
+		selectProfile: !!selectProfileBtn,
+		toggle: !!toggleBtn,
+		copy: !!copyBtn
+	});
+	
+	if (selectDirBtn) {
+		selectDirBtn.addEventListener('click', () => {
+			console.log('Select directory button clicked');
+			selectNewDirectory();
+		});
+	}
+	
+	if (selectProfileBtn) {
+		selectProfileBtn.addEventListener('click', () => {
+			console.log('Select profile button clicked');
+			selectNewProfile();
+		});
+	}
+	
+	if (toggleBtn) {
+		toggleBtn.addEventListener('click', () => {
+			console.log('Toggle view button clicked');
+			toggleView();
+		});
+	}
+	
+	if (copyBtn) {
+		copyBtn.addEventListener('click', () => {
+			console.log('Copy XML button clicked!');
+			copyXml();
+		});
+	}
+}
+
+// Set up event listeners when DOM is ready
+if (document.readyState === 'loading') {
+	console.log('DOM still loading, waiting for DOMContentLoaded');
+	document.addEventListener('DOMContentLoaded', setupEventListeners);
+} else {
+	console.log('DOM already loaded, setting up immediately');
+	setupEventListeners();
+}
 
 if (window.api && typeof window.api.onXml === 'function') {
 	console.log('Setting up XML listener...');

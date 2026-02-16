@@ -24,8 +24,8 @@ function showXml(data) {
 		// Update file info display
 		updateFileInfo();
 		
-		// Display XML view by default
-		showXmlViewMode();
+		// Display hotkeys view by default
+		showHotkeysViewMode();
 		
 		// Show success status when data is loaded
 		if (data.aoe3UserDir) {

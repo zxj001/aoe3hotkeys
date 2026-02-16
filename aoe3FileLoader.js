@@ -38,12 +38,13 @@ function selectAoe3Directory(parentWindow) {
 /**
  * Prompt user to select a directory
  * @param {BrowserWindow} parentWindow - The parent window for the dialog
+ * @param {string} defaultPath - Optional default path for the dialog
  * @returns {string|null} The selected directory path or null if cancelled
  */
-function promptForDirectory(parentWindow) {
+function promptForDirectory(parentWindow, defaultPath) {
   const result = dialog.showOpenDialogSync(parentWindow, {
     title: 'Select Age of Empires 3 Users3 Directory',
-    defaultPath: homedir,
+    defaultPath: defaultPath || homedir,
     properties: ['openDirectory']
   })
   

@@ -4,6 +4,7 @@ const path = require('path')
 const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile } = require('./aoe3FileLoader')
 
 let mainWindow = null;
+let currentDirectory = null; // Track the currently loaded directory
 
 function createWindow () {
   // Create the browser window.
@@ -31,6 +32,12 @@ async function loadAndSendXml(mainWindow) {
   try {
     console.log('Loading AOE3 profile...')
     const profileData = await loadAoe3Profile(mainWindow)
+    
+    // Store the current directory for future dialog defaults
+    if (profileData.aoe3UserDir) {
+      currentDirectory = profileData.aoe3UserDir
+      console.log('Current directory set to:', currentDirectory)
+    }
     
     // Prepare data to send to renderer
     const props = {
@@ -60,15 +67,19 @@ async function loadAndSendXml(mainWindow) {
 ipcMain.handle('select-new-directory', async (event) => {
   try {
     console.log('User requested new directory selection')
+    console.log('Using default path:', currentDirectory || 'none')
     if (!mainWindow) {
       throw new Error('Main window not available')
     }
     
-    // Always prompt for new directory
-    const newDir = promptForDirectory(mainWindow)
+    // Always prompt for new directory, starting from current or default
+    const newDir = promptForDirectory(mainWindow, currentDirectory)
     if (!newDir) {
       throw new Error('No directory selected')
     }
+    
+    // Update current directory
+    currentDirectory = newDir
     
     // Find XML files in new directory
     const xmlFiles = findXmlFiles(newDir)
@@ -105,20 +116,24 @@ ipcMain.handle('select-new-directory', async (event) => {
 ipcMain.handle('select-new-profile', async (event) => {
   try {
     console.log('User requested new profile selection')
+    console.log('Using default path:', currentDirectory || 'none')
     if (!mainWindow) {
       throw new Error('Main window not available')
     }
     
-    // Always prompt for file selection (no directory selection needed)
-    const selectedFile = promptForXmlFile(mainWindow)
+    // Always prompt for file selection, starting from current directory
+    const selectedFile = promptForXmlFile(mainWindow, currentDirectory)
     if (!selectedFile) {
       throw new Error('No file selected')
     }
     
+    // Update current directory from selected file
+    currentDirectory = path.dirname(selectedFile)
+    
     // Parse and send
     const parseResult = await parseXmlFile(selectedFile)
     const props = {
-      aoe3UserDir: path.dirname(selectedFile),
+      aoe3UserDir: currentDirectory,
       userFilePath: selectedFile,
       xml: parseResult.xml,
       json: parseResult.json,

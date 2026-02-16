@@ -42,11 +42,37 @@ function createWindow () {
       console.log("Age of Empires 3 user directory exists.")
     } else {
       console.log("Directory does not exist.")
-      // TODO prompt user
+      // Prompt user to select directory
+      const result = dialog.showOpenDialogSync(mainWindow, {
+        title: 'Select Age of Empires 3 Users3 Directory',
+        defaultPath: homedir,
+        properties: ['openDirectory']
+      })
+      
+      if (result && result.length > 0) {
+        aoe3UserDir = result[0]
+        console.log("User selected directory: " + aoe3UserDir)
+      } else {
+        console.log("User cancelled directory selection. Exiting.")
+        return;
+      }
     }
   } catch(e) {
-    console.log("An error occurred.")
-    // TODO prompt user
+    console.log("An error occurred: " + e.message)
+    // Prompt user to select directory
+    const result = dialog.showOpenDialogSync(mainWindow, {
+      title: 'Select Age of Empires 3 Users3 Directory',
+      defaultPath: homedir,
+      properties: ['openDirectory']
+    })
+    
+    if (result && result.length > 0) {
+      aoe3UserDir = result[0]
+      console.log("User selected directory: " + aoe3UserDir)
+    } else {
+      console.log("User cancelled directory selection. Exiting.")
+      return;
+    }
   }
 
   let userFiles = fs.readdirSync(aoe3UserDir)
@@ -58,31 +84,59 @@ function createWindow () {
     }
   }
 
-  // TODO allow user to select if it's ambiguous which file to pick
+  // Check if any XML files were found
   if (xmlFiles.length == 0) {
-    console.log("Error, not user files. Please play Age of Empires 3 at least once.")
+    console.log("Error, no user files. Please play Age of Empires 3 at least once.")
     return;
   }
 
-  // Parse the XML
-  let userFilePath = xmlFiles[0];
+  // Allow user to select if there are multiple XML files
+  let userFilePath;
+  if (xmlFiles.length > 1) {
+    const result = dialog.showOpenDialogSync(mainWindow, {
+      title: 'Select User Profile XML File',
+      defaultPath: aoe3UserDir,
+      properties: ['openFile'],
+      filters: [{ name: 'XML Files', extensions: ['xml'] }]
+    })
+    
+    if (result && result.length > 0) {
+      userFilePath = result[0]
+      console.log("User selected file: " + userFilePath)
+    } else {
+      console.log("User cancelled file selection. Using first file.")
+      userFilePath = xmlFiles[0]
+    }
+  } else {
+    userFilePath = xmlFiles[0];
+  }
   let parser = new xml2js.Parser();
   console.log(userFilePath)
 
   // The user profile XML file is UTf-16 encoded
   let userProfileData = fs.readFileSync(userFilePath, "UCS-2")
   console.log(userProfileData)
+
   parser.parseString(userProfileData, function (err, result) {
+      // Store props to send to renderer, including any errors encountered during parsing
+      let props = {
+        aoe3UserDir: aoe3UserDir,
+        userFiles: userFiles,
+        xml: userProfileData,
+        json: result,
+      }
       if (err) {
         console.error('XML parse error', err)
+        props.error = err.message
       } else {
         console.dir(result);
       }
       // Send raw XML text and parsed JSON to renderer for display
       try {
-        mainWindow.webContents.send('xml-data', { xml: userProfileData, json: result })
+        mainWindow.webContents.send('xml-data', props)
       } catch (sendErr) {
-        console.error('Failed to send xml-data to renderer', sendErr)
+        props.error = sendErr.message
+        console.error('Failed to send xml-data to renderer', props)
       }
       console.log('Done');
   });

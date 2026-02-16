@@ -163,24 +163,70 @@ function parseXmlFile(filePath) {
 }
 
 /**
- * Load and parse the default keymap XML file
+ * Get list of available default keymap files
+ * @returns {Array} Array of {name, path} objects for available default keymaps
+ */
+function getAvailableDefaultKeymaps() {
+  const keymaps = []
+  
+  // Add the game's default keymap
+  const gameDefaultPath = path.join(__dirname, 'example', 'defaultkeymap.xml')
+  if (fs.existsSync(gameDefaultPath)) {
+    keymaps.push({
+      name: 'Game Default',
+      path: gameDefaultPath,
+      encoding: 'utf8'
+    })
+  }
+  
+  // Add custom profiles from MrMilos_Hotkey_Setup folder
+  const customProfilesDir = path.join(__dirname, 'example', 'MrMilos_Hotkey_Setup')
+  if (fs.existsSync(customProfilesDir)) {
+    try {
+      const files = fs.readdirSync(customProfilesDir)
+      files.forEach(file => {
+        if (path.extname(file).toLowerCase() === '.xml') {
+          const filePath = path.join(customProfilesDir, file)
+          keymaps.push({
+            name: path.basename(file, '.xml'),
+            path: filePath,
+            encoding: 'UCS-2' // Custom profiles use UTF-16
+          })
+        }
+      })
+    } catch (err) {
+      console.error('Error reading custom profiles directory:', err)
+    }
+  }
+  
+  return keymaps
+}
+
+/**
+ * Load and parse a default keymap XML file
+ * @param {string} filePath - Path to the keymap file (optional, defaults to game default)
+ * @param {string} encoding - File encoding ('utf8' or 'UCS-2')
  * @returns {Promise<object|null>} Parsed default keymap JSON or null if not found
  */
-function loadDefaultKeymap() {
+function loadDefaultKeymap(filePath, encoding = 'utf8') {
   return new Promise((resolve) => {
-    const defaultKeymapPath = path.join(__dirname, 'example', 'defaultkeymap.xml')
-    console.log('Loading default keymap from:', defaultKeymapPath)
+    // Use game default if no path specified
+    if (!filePath) {
+      filePath = path.join(__dirname, 'example', 'defaultkeymap.xml')
+    }
+    
+    console.log('Loading default keymap from:', filePath)
     
     try {
       // Check if file exists
-      if (!fs.existsSync(defaultKeymapPath)) {
+      if (!fs.existsSync(filePath)) {
         console.warn('Default keymap file not found')
         resolve(null)
         return
       }
       
-      // The default keymap is UTF-8 encoded
-      const defaultKeymapData = fs.readFileSync(defaultKeymapPath, 'utf8')
+      // Read with appropriate encoding
+      const defaultKeymapData = fs.readFileSync(filePath, encoding)
       const parser = new xml2js.Parser()
       
       parser.parseString(defaultKeymapData, function (err, result) {
@@ -244,5 +290,6 @@ module.exports = {
   promptForXmlFile,
   parseXmlFile,
   isXmlFile,
-  loadDefaultKeymap
+  loadDefaultKeymap,
+  getAvailableDefaultKeymaps
 }

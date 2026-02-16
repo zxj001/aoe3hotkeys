@@ -19,37 +19,75 @@ function escapeHtml(text) {
 function parseDefaultKeymap(defaultKeymapData) {
 	const defaultGroups = [];
 	
-	if (!defaultKeymapData || !defaultKeymapData.DefaultKeyMap || !defaultKeymapData.DefaultKeyMap.KeyMapGroup) {
+	if (!defaultKeymapData) {
 		return defaultGroups;
 	}
 	
-	const groups = defaultKeymapData.DefaultKeyMap.KeyMapGroup;
-	groups.forEach(group => {
-		const groupName = group.$.name || 'Unnamed Group';
-		const actions = [];
-		
-		if (group.KeyMapData && Array.isArray(group.KeyMapData)) {
-			group.KeyMapData.forEach(keyData => {
-				const name = keyData.Name ? keyData.Name[0] : null;
-				const displayName = keyData.DisplayName ? keyData.DisplayName[0] : name;
-				const event = keyData.Event ? keyData.Event[0] : '';
-				if (name) {
-					actions.push({
-						name: name,
-						displayName: displayName,
-						defaultKey: event
+	// Handle game default format (DefaultKeyMap)
+	if (defaultKeymapData.DefaultKeyMap && defaultKeymapData.DefaultKeyMap.KeyMapGroup) {
+		const groups = defaultKeymapData.DefaultKeyMap.KeyMapGroup;
+		groups.forEach(group => {
+			const groupName = group.$.name || 'Unnamed Group';
+			const actions = [];
+			
+			if (group.KeyMapData && Array.isArray(group.KeyMapData)) {
+				group.KeyMapData.forEach(keyData => {
+					const name = keyData.Name ? keyData.Name[0] : null;
+					const displayName = keyData.DisplayName ? keyData.DisplayName[0] : name;
+					const event = keyData.Event ? keyData.Event[0] : '';
+					if (name) {
+						actions.push({
+							name: name,
+							displayName: displayName,
+							defaultKey: event
+						});
+					}
+				});
+			}
+			
+			if (actions.length > 0) {
+				defaultGroups.push({
+					name: groupName,
+					actions: actions
+				});
+			}
+		});
+	}
+	// Handle user profile format (Profile -> KeyMapGroups -> Group)
+	else if (defaultKeymapData.Profile && defaultKeymapData.Profile.KeyMapGroups) {
+		const keyMapGroups = defaultKeymapData.Profile.KeyMapGroups[0];
+		if (keyMapGroups && keyMapGroups.Group) {
+			const groups = keyMapGroups.Group;
+			groups.forEach(group => {
+				const groupName = group.$.Name || 'Unnamed Group';
+				const actions = [];
+				
+				if (group.KeyMap && Array.isArray(group.KeyMap)) {
+					group.KeyMap.forEach(keymap => {
+						const name = keymap.Name ? keymap.Name[0] : null;
+						const event = keymap.Event ? keymap.Event[0] : '';
+						const action = keymap.Action ? keymap.Action[0] : 'bind';
+						
+						// Only include bound keys as defaults
+						if (name && action === 'bind') {
+							actions.push({
+								name: name,
+								displayName: name,
+								defaultKey: event
+							});
+						}
+					});
+				}
+				
+				if (actions.length > 0) {
+					defaultGroups.push({
+						name: groupName,
+						actions: actions
 					});
 				}
 			});
 		}
-		
-		if (actions.length > 0) {
-			defaultGroups.push({
-				name: groupName,
-				actions: actions
-			});
-		}
-	});
+	}
 	
 	return defaultGroups;
 }

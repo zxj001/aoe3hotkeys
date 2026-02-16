@@ -1,11 +1,13 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, clipboard } = require('electron')
 const path = require('path')
-const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile, loadDefaultKeymap } = require('./aoe3FileLoader')
+const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile, loadDefaultKeymap, getAvailableDefaultKeymaps } = require('./aoe3FileLoader')
 
 let mainWindow = null;
 let currentDirectory = null; // Track the currently loaded directory
 let defaultKeymapData = null; // Store the default keymap data
+let availableDefaultKeymaps = []; // List of available default keymaps
+let currentDefaultKeymapIndex = 0; // Index of currently selected default keymap
 
 function createWindow () {
   // Create the browser window.
@@ -34,9 +36,16 @@ async function loadAndSendXml(mainWindow) {
     console.log('Loading AOE3 profile...')
     const profileData = await loadAoe3Profile(mainWindow)
     
+    // Get available default keymaps if not already loaded
+    if (availableDefaultKeymaps.length === 0) {
+      availableDefaultKeymaps = getAvailableDefaultKeymaps()
+      console.log('Found', availableDefaultKeymaps.length, 'default keymap options')
+    }
+    
     // Load default keymap if not already loaded
-    if (!defaultKeymapData) {
-      defaultKeymapData = await loadDefaultKeymap()
+    if (!defaultKeymapData && availableDefaultKeymaps.length > 0) {
+      const selectedKeymap = availableDefaultKeymaps[currentDefaultKeymapIndex]
+      defaultKeymapData = await loadDefaultKeymap(selectedKeymap.path, selectedKeymap.encoding)
       console.log('Default keymap loaded:', defaultKeymapData ? 'success' : 'failed')
     }
     
@@ -54,6 +63,8 @@ async function loadAndSendXml(mainWindow) {
       xml: profileData.xml,
       json: profileData.json,
       defaultKeymap: defaultKeymapData,
+      availableDefaultKeymaps: availableDefaultKeymaps.map(k => k.name),
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex,
       error: profileData.error
     }
     
@@ -68,7 +79,9 @@ async function loadAndSendXml(mainWindow) {
       error: err.message,
       xml: null,
       json: null,
-      defaultKeymap: defaultKeymapData
+      defaultKeymap: defaultKeymapData,
+      availableDefaultKeymaps: availableDefaultKeymaps.map(k => k.name),
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex
     })
   }
 }
@@ -111,6 +124,8 @@ ipcMain.handle('select-new-directory', async (event) => {
       xml: parseResult.xml,
       json: parseResult.json,
       defaultKeymap: defaultKeymapData,
+      availableDefaultKeymaps: availableDefaultKeymaps.map(k => k.name),
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex,
       error: parseResult.error
     }
     
@@ -149,6 +164,8 @@ ipcMain.handle('select-new-profile', async (event) => {
       xml: parseResult.xml,
       json: parseResult.json,
       defaultKeymap: defaultKeymapData,
+      availableDefaultKeymaps: availableDefaultKeymaps.map(k => k.name),
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex,
       error: parseResult.error
     }
     
@@ -157,6 +174,35 @@ ipcMain.handle('select-new-profile', async (event) => {
     return { success: true }
   } catch (err) {
     console.error('Error selecting new profile:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Switch to a different default keymap
+ipcMain.handle('select-default-keymap', async (event, index) => {
+  try {
+    console.log('User requested default keymap switch to index:', index)
+    
+    if (index < 0 || index >= availableDefaultKeymaps.length) {
+      throw new Error('Invalid default keymap index')
+    }
+    
+    // Update current selection
+    currentDefaultKeymapIndex = index
+    const selectedKeymap = availableDefaultKeymaps[index]
+    
+    // Load the new default keymap
+    defaultKeymapData = await loadDefaultKeymap(selectedKeymap.path, selectedKeymap.encoding)
+    console.log('Loaded default keymap:', selectedKeymap.name)
+    
+    // Return the new default keymap data
+    return {
+      success: true,
+      defaultKeymap: defaultKeymapData,
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex
+    }
+  } catch (err) {
+    console.error('Error selecting default keymap:', err)
     throw err
   }
 })

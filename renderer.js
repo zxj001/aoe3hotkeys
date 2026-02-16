@@ -3,6 +3,8 @@
 let currentXmlData = null;
 let currentJsonData = null;
 let currentDefaultKeymap = null; // Store default keymap data
+let availableDefaultKeymaps = []; // List of available default keymap names
+let currentDefaultKeymapIndex = 0; // Currently selected default keymap index
 let currentFileInfo = null; // Store directory and file path
 let showFormatted = true;
 let currentView = 'xml'; // 'xml' or 'hotkeys'
@@ -14,6 +16,13 @@ function showXml(data) {
 		currentXmlData = data.xml;
 		currentJsonData = data.json;
 		currentDefaultKeymap = data.defaultKeymap; // Store default keymap
+		
+		// Store available default keymaps
+		if (data.availableDefaultKeymaps) {
+			availableDefaultKeymaps = data.availableDefaultKeymaps;
+			currentDefaultKeymapIndex = data.currentDefaultKeymapIndex || 0;
+			updateDefaultKeymapSelector();
+		}
 		
 		// Store file info
 		currentFileInfo = {
@@ -78,6 +87,65 @@ function updateFileInfo() {
 		fileInfoEl.style.display = 'block';
 	} else {
 		fileInfoEl.style.display = 'none';
+	}
+}
+
+// Update the default keymap selector dropdown
+function updateDefaultKeymapSelector() {
+	const selector = document.getElementById('default-keymap-selector');
+	if (!selector) return;
+	
+	// Clear existing options
+	selector.innerHTML = '';
+	
+	// Add options for each available default keymap
+	availableDefaultKeymaps.forEach((name, index) => {
+		const option = document.createElement('option');
+		option.value = index;
+		option.textContent = name;
+		if (index === currentDefaultKeymapIndex) {
+			option.selected = true;
+		}
+		selector.appendChild(option);
+	});
+	
+	// Show the selector container if there are options
+	const container = document.getElementById('default-keymap-selector-container');
+	if (container) {
+		container.style.display = availableDefaultKeymaps.length > 0 ? 'block' : 'none';
+	}
+}
+
+// Select a new default keymap
+async function selectDefaultKeymap() {
+	const selector = document.getElementById('default-keymap-selector');
+	if (!selector) return;
+	
+	const newIndex = parseInt(selector.value);
+	if (newIndex === currentDefaultKeymapIndex) return;
+	
+	if (!window.api || !window.api.selectDefaultKeymap) {
+		alert('API not available');
+		return;
+	}
+	
+	showStatus('Loading default keymap...');
+	try {
+		const result = await window.api.selectDefaultKeymap(newIndex);
+		if (result.success) {
+			currentDefaultKeymap = result.defaultKeymap;
+			currentDefaultKeymapIndex = result.currentDefaultKeymapIndex;
+			
+			// Refresh the hotkeys view if currently displayed
+			if (currentView === 'hotkeys' && currentJsonData) {
+				showHotkeysView(currentJsonData, currentDefaultKeymap);
+			}
+			
+			showStatus('Default keymap changed successfully');
+		}
+	} catch (err) {
+		console.error('Error selecting default keymap:', err);
+		showStatus('Error: ' + err.message, true);
 	}
 }
 
@@ -217,6 +285,7 @@ window.toggleView = toggleView;
 window.copyXml = copyXml;
 window.selectNewDirectory = selectNewDirectory;
 window.selectNewProfile = selectNewProfile;
+window.selectDefaultKeymap = selectDefaultKeymap;
 window.showHotkeysViewMode = showHotkeysViewMode;
 window.showXmlViewMode = showXmlViewMode;
 
@@ -284,6 +353,15 @@ function setupEventListeners() {
 		viewXmlBtn.addEventListener('click', () => {
 			console.log('View raw XML button clicked');
 			showXmlViewMode();
+		});
+	}
+	
+	// Default keymap selector
+	const defaultKeymapSelector = document.getElementById('default-keymap-selector');
+	if (defaultKeymapSelector) {
+		defaultKeymapSelector.addEventListener('change', () => {
+			console.log('Default keymap selector changed');
+			selectDefaultKeymap();
 		});
 	}
 }

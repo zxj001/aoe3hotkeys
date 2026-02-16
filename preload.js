@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   onXml: (callback) => ipcRenderer.on('xml-data', (event, data) => callback(data)),
   selectNewDirectory: () => ipcRenderer.invoke('select-new-directory'),
   selectNewProfile: () => ipcRenderer.invoke('select-new-profile'),
+  selectDefaultKeymap: (index) => ipcRenderer.invoke('select-default-keymap', index),
   writeToClipboard: (text) => ipcRenderer.invoke('write-to-clipboard', text)
 })
 

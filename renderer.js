@@ -88,6 +88,12 @@ function showHotkeysViewMode() {
 	
 	currentView = 'hotkeys';
 	showHotkeysView(currentJsonData);
+	
+	// Hide the toggle raw/formatted button in hotkeys view
+	const toggleBtn = document.getElementById('toggle-raw');
+	if (toggleBtn) {
+		toggleBtn.style.display = 'none';
+	}
 }
 
 // Switch to XML view
@@ -99,6 +105,12 @@ function showXmlViewMode() {
 	
 	currentView = 'xml';
 	showXmlView(currentXmlData, showFormatted);
+	
+	// Show the toggle raw/formatted button in XML view
+	const toggleBtn = document.getElementById('toggle-raw');
+	if (toggleBtn) {
+		toggleBtn.style.display = 'inline-block';
+	}
 }
 
 function copyXml() {

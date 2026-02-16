@@ -49,8 +49,15 @@ function showXml(data) {
 	if (data && data.xml) {
 		currentXmlData = data.xml;
 		updateDisplay();
+		// Show success status when data is loaded
+		if (data.aoe3UserDir) {
+			showStatus('Profile loaded successfully from: ' + data.aoe3UserDir);
+		}
 	} else if (data && data.json) {
 		el.innerText = JSON.stringify(data.json, null, 2)
+	} else if (data && data.error) {
+		el.innerText = 'Error: ' + data.error;
+		showStatus('Error: ' + data.error, true);
 	} else {
 		el.innerText = 'No XML data received.'
 	}
@@ -83,9 +90,59 @@ function copyXml() {
 	}
 }
 
+// Request new directory selection
+async function selectNewDirectory() {
+	if (!window.api || !window.api.selectNewDirectory) {
+		alert('API not available');
+		return;
+	}
+	showStatus('Selecting new directory...');
+	try {
+		await window.api.selectNewDirectory();
+	} catch (err) {
+		console.error('Error selecting directory:', err);
+		showStatus('Error: ' + err.message, true);
+	}
+}
+
+// Request new profile selection
+async function selectNewProfile() {
+	if (!window.api || !window.api.selectNewProfile) {
+		alert('API not available');
+		return;
+	}
+	showStatus('Selecting new profile...');
+	try {
+		await window.api.selectNewProfile();
+	} catch (err) {
+		console.error('Error selecting profile:', err);
+		showStatus('Error: ' + err.message, true);
+	}
+}
+
+// Show status message
+function showStatus(message, isError = false) {
+	const statusEl = document.getElementById('status');
+	if (statusEl) {
+		statusEl.textContent = message;
+		statusEl.style.display = 'block';
+		statusEl.style.backgroundColor = isError ? '#ffebee' : '#e3f2fd';
+		statusEl.style.color = isError ? '#c62828' : '#1565c0';
+		
+		// Auto-hide after 3 seconds if not an error
+		if (!isError) {
+			setTimeout(() => {
+				statusEl.style.display = 'none';
+			}, 3000);
+		}
+	}
+}
+
 // Make functions globally accessible for onclick handlers
 window.toggleView = toggleView;
 window.copyXml = copyXml;
+window.selectNewDirectory = selectNewDirectory;
+window.selectNewProfile = selectNewProfile;
 
 console.log('Renderer loaded');
 console.log('window.api:', window.api);

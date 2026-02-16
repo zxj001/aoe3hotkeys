@@ -2,7 +2,9 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
-  onXml: (callback) => ipcRenderer.on('xml-data', (event, data) => callback(data))
+  onXml: (callback) => ipcRenderer.on('xml-data', (event, data) => callback(data)),
+  selectNewDirectory: () => ipcRenderer.invoke('select-new-directory'),
+  selectNewProfile: () => ipcRenderer.invoke('select-new-profile')
 })
 
 window.addEventListener('DOMContentLoaded', () => {

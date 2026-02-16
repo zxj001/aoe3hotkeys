@@ -37,6 +37,12 @@
       .controls button:hover {
         background-color: #45a049;
       }
+      #select-directory, #select-profile {
+        background-color: #2196F3;
+      }
+      #select-directory:hover, #select-profile:hover {
+        background-color: #1976D2;
+      }
       #xml-content {
         white-space: pre-wrap;
         border: 1px solid #ddd;
@@ -60,9 +66,12 @@
     <!-- XML display -->
     <h2>Loaded XML</h2>
     <div class="controls">
+      <button id="select-directory" onclick="selectNewDirectory()">Select New Directory</button>
+      <button id="select-profile" onclick="selectNewProfile()">Select New Profile</button>
       <button id="toggle-raw" onclick="toggleView()">Toggle Raw/Formatted</button>
       <button id="copy-xml" onclick="copyXml()">Copy XML</button>
     </div>
+    <div id="status" style="margin: 10px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; display: none;"></div>
     <pre id="xml-content"></pre>
 
     <!-- Renderer script -->

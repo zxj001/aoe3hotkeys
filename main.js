@@ -1,27 +1,13 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
-const { dialog } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
-const fs = require('fs')
-const xml2js = require('xml2js')
-const homedir = require('os').homedir();
+const { loadAoe3Profile, selectAoe3Directory, findXmlFiles, selectXmlFile, parseXmlFile } = require('./aoe3FileLoader')
 
-
-// const remote = require('remote'); // Load remote compnent that contains the dialog dependency
-// const dialog = remote.require('dialog'); // Load the dialogs component of the OS
-// const fs = require('fs'); // Load the File System to execute our common tasks (CRUD)
-
-function isXmlFile(filePath) {
-  return path.extname(filePath).toLowerCase() == ".xml";
-}
-
-function isUserProfile(xmlObject) {
-
-}
+let mainWindow = null;
 
 function createWindow () {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -41,118 +27,124 @@ function createWindow () {
   // mainWindow.webContents.openDevTools()
 }
 
-function loadAndSendXml(mainWindow) {
-  // Load hotkeyfile
-  const DEFAULT_AOE3_USER_DIR = path.join(homedir, "Documents/My Games/Age of Empires 3/Users3")
-  console.log(DEFAULT_AOE3_USER_DIR)
-  let aoe3UserDir = DEFAULT_AOE3_USER_DIR
-
+async function loadAndSendXml(mainWindow) {
   try {
-    if (fs.existsSync(DEFAULT_AOE3_USER_DIR)) {
-      console.log("Age of Empires 3 user directory exists.")
-    } else {
-      console.log("Directory does not exist.")
-      // Prompt user to select directory
-      const result = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Select Age of Empires 3 Users3 Directory',
-        defaultPath: homedir,
-        properties: ['openDirectory']
-      })
-      
-      if (result && result.length > 0) {
-        aoe3UserDir = result[0]
-        console.log("User selected directory: " + aoe3UserDir)
-      } else {
-        console.log("User cancelled directory selection. Exiting.")
-        return;
-      }
-    }
-  } catch(e) {
-    console.log("An error occurred: " + e.message)
-    // Prompt user to select directory
-    const result = dialog.showOpenDialogSync(mainWindow, {
-      title: 'Select Age of Empires 3 Users3 Directory',
-      defaultPath: homedir,
-      properties: ['openDirectory']
-    })
+    console.log('Loading AOE3 profile...')
+    const profileData = await loadAoe3Profile(mainWindow)
     
-    if (result && result.length > 0) {
-      aoe3UserDir = result[0]
-      console.log("User selected directory: " + aoe3UserDir)
-    } else {
-      console.log("User cancelled directory selection. Exiting.")
-      return;
+    // Prepare data to send to renderer
+    const props = {
+      aoe3UserDir: profileData.aoe3UserDir,
+      userFiles: profileData.userFiles,
+      xml: profileData.xml,
+      json: profileData.json,
+      error: profileData.error
     }
-  }
-
-  let userFiles = fs.readdirSync(aoe3UserDir)
-  let xmlFiles = []
-  for (let filePath of userFiles) {
-    if (isXmlFile(filePath)) {
-      xmlFiles.push(path.join(aoe3UserDir, filePath))
-      console.log("XML file found: " + filePath)
-    }
-  }
-
-  // Check if any XML files were found
-  if (xmlFiles.length == 0) {
-    console.log("Error, no user files. Please play Age of Empires 3 at least once.")
-    return;
-  }
-
-  // Allow user to select if there are multiple XML files
-  let userFilePath;
-  if (xmlFiles.length > 1) {
-    const result = dialog.showOpenDialogSync(mainWindow, {
-      title: 'Select User Profile XML File',
-      defaultPath: aoe3UserDir,
-      properties: ['openFile'],
-      filters: [{ name: 'XML Files', extensions: ['xml'] }]
-    })
     
-    if (result && result.length > 0) {
-      userFilePath = result[0]
-      console.log("User selected file: " + userFilePath)
-    } else {
-      console.log("User cancelled file selection. Using first file.")
-      userFilePath = xmlFiles[0]
-    }
-  } else {
-    userFilePath = xmlFiles[0];
+    // Send to renderer
+    console.log('Sending XML data to renderer...')
+    mainWindow.webContents.send('xml-data', props)
+    console.log('XML data sent successfully')
+  } catch (err) {
+    console.error('Failed to load AOE3 profile:', err.message)
+    // Send error to renderer
+    mainWindow.webContents.send('xml-data', {
+      error: err.message,
+      xml: null,
+      json: null
+    })
   }
-  let parser = new xml2js.Parser();
-  console.log(userFilePath)
-
-  // The user profile XML file is UTf-16 encoded
-  let userProfileData = fs.readFileSync(userFilePath, "UCS-2")
-  console.log(userProfileData)
-
-  parser.parseString(userProfileData, function (err, result) {
-      // Store props to send to renderer, including any errors encountered during parsing
-      let props = {
-        aoe3UserDir: aoe3UserDir,
-        userFiles: userFiles,
-        xml: userProfileData,
-        json: result,
-      }
-      if (err) {
-        console.error('XML parse error', err)
-        props.error = err.message
-      } else {
-        console.dir(result);
-      }
-      // Send raw XML text and parsed JSON to renderer for display
-      console.log('Sending XML data to renderer...');
-      try {
-        mainWindow.webContents.send('xml-data', props)
-        console.log('XML data sent successfully');
-      } catch (sendErr) {
-        props.error = sendErr.message
-        console.error('Failed to send xml-data to renderer', sendErr)
-      }
-      console.log('Done');
-  });
 }
+
+// IPC Handler: Select a new AOE3 directory and reload
+ipcMain.handle('select-new-directory', async (event) => {
+  try {
+    console.log('User requested new directory selection')
+    if (!mainWindow) {
+      throw new Error('Main window not available')
+    }
+    
+    // Prompt for new directory
+    const newDir = selectAoe3Directory(mainWindow)
+    if (!newDir) {
+      throw new Error('No directory selected')
+    }
+    
+    // Find XML files in new directory
+    const xmlFiles = findXmlFiles(newDir)
+    if (xmlFiles.length === 0) {
+      throw new Error('No XML files found in selected directory')
+    }
+    
+    // Select file
+    const selectedFile = selectXmlFile(mainWindow, xmlFiles, newDir)
+    if (!selectedFile) {
+      throw new Error('No file selected')
+    }
+    
+    // Parse and send
+    const parseResult = await parseXmlFile(selectedFile)
+    const props = {
+      aoe3UserDir: newDir,
+      userFilePath: selectedFile,
+      xml: parseResult.xml,
+      json: parseResult.json,
+      error: parseResult.error
+    }
+    
+    mainWindow.webContents.send('xml-data', props)
+    console.log('New directory loaded successfully')
+    return { success: true }
+  } catch (err) {
+    console.error('Error selecting new directory:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Select a new profile from current directory
+ipcMain.handle('select-new-profile', async (event) => {
+  try {
+    console.log('User requested new profile selection')
+    if (!mainWindow) {
+      throw new Error('Main window not available')
+    }
+    
+    // Prompt for directory with file selection
+    const newDir = selectAoe3Directory(mainWindow)
+    if (!newDir) {
+      throw new Error('No directory selected')
+    }
+    
+    // Find XML files
+    const xmlFiles = findXmlFiles(newDir)
+    if (xmlFiles.length === 0) {
+      throw new Error('No XML files found')
+    }
+    
+    // Always prompt for file selection
+    const selectedFile = selectXmlFile(mainWindow, xmlFiles, newDir)
+    if (!selectedFile) {
+      throw new Error('No file selected')
+    }
+    
+    // Parse and send
+    const parseResult = await parseXmlFile(selectedFile)
+    const props = {
+      aoe3UserDir: newDir,
+      userFilePath: selectedFile,
+      xml: parseResult.xml,
+      json: parseResult.json,
+      error: parseResult.error
+    }
+    
+    mainWindow.webContents.send('xml-data', props)
+    console.log('New profile loaded successfully')
+    return { success: true }
+  } catch (err) {
+    console.error('Error selecting new profile:', err)
+    throw err
+  }
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

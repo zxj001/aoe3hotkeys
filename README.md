@@ -1,3 +1,44 @@
+# Age of Empires 3 Hotkeys Editor
+
+An Electron application for viewing and managing Age of Empires 3 hotkey configurations.
+
+## Features
+- Load and display Age of Empires 3 user profile XML files
+- View hotkeys in an organized table format grouped by category
+- Toggle between raw XML view and formatted hotkeys view
+- Copy XML to clipboard
+- Select custom AoE3 directory and profile files
+
+## File Structure
+
+### Main Application Files
+- `package.json` - Points to the app's main file and lists its details and dependencies
+- `main.js` - Main process: window creation, IPC handlers, directory tracking
+- `preload.js` - Secure IPC bridge exposing APIs to renderer
+- `index.html` - Main UI structure and styling
+
+### Renderer Files
+- `renderer.js` - Orchestrates views, handles IPC communication, manages state
+- `xmlView.js` - XML formatting and syntax highlighting functionality
+- `hotkeysView.js` - Hotkey parsing and table rendering functionality
+- `aoe3FileLoader.js` - File system operations for loading AoE3 profiles
+
+## Development Roadmap
+
+**Current Features:**
+- ✅ Load AoE3 profile XML files
+- ✅ Display raw XML with syntax highlighting
+- ✅ Display hotkeys in organized table format
+- ✅ Toggle between XML and hotkeys views
+- ✅ Directory/profile selection dialogs
+- ✅ Clipboard functionality
+
+**MVP Goals:**
+* Searchable hotkeys
+* Conflict detection (show duplicate key bindings)
+* Change tracking (show modified hotkeys)
+* Unsaved changes warning
+
 # General Steps
 1. look for Age of Empires 3 installation
 2. Load user profile. If not found, warn user to create a new profile

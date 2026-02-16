@@ -1,82 +1,42 @@
-// Renderer: receive XML data from preload-exposed API and render it.
+// Renderer: receive XML data from preload-exposed API and coordinate views
 
 let currentXmlData = null;
 let currentJsonData = null;
 let showFormatted = true;
 let currentView = 'xml'; // 'xml' or 'hotkeys'
 
-function formatXml(xml) {
-	const PADDING = '  ';
-	const reg = /(>)(<)(\/*)/g;
-	let formatted = '';
-	let pad = 0;
-	
-	xml = xml.replace(reg, '$1\r\n$2$3');
-	const lines = xml.split('\r\n');
-	
-	for (let line of lines) {
-		let indent = 0;
-		if (line.match(/.+<\/\w[^>]*>$/)) {
-			indent = 0;
-		} else if (line.match(/^<\/\w/)) {
-			if (pad !== 0) {
-				pad -= 1;
-			}
-		} else if (line.match(/^<\w([^>]*[^\/])?>.*$/)) {
-			indent = 1;
-		} else {
-			indent = 0;
-		}
-		
-		formatted += PADDING.repeat(pad) + line + '\r\n';
-		pad += indent;
-	}
-	
-	return formatted.trim();
-}
-
-function highlightXml(xml) {
-	return xml
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/(&lt;\/?)(\w+)([^&]*?)(&gt;)/g, '<span class="xml-tag">$1$2</span><span class="xml-attr">$3</span><span class="xml-tag">$4</span>')
-		.replace(/="([^"]*)"/g, '="<span class="xml-value">$1</span>"')
-		.replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>');
-}
-
 function showXml(data) {
-	const el = document.getElementById('xml-content')
-	if (!el) return
+	if (!data) return;
 	
-	if (data && data.xml) {
+	if (data.xml) {
 		currentXmlData = data.xml;
-		currentJsonData = data.json; // Store JSON data for hotkeys parsing
-		updateDisplay();
+		currentJsonData = data.json;
+		
+		// Display XML view by default
+		showXmlViewMode();
+		
 		// Show success status when data is loaded
 		if (data.aoe3UserDir) {
 			showStatus('Profile loaded successfully from: ' + data.aoe3UserDir);
 		}
-	} else if (data && data.json) {
+	} else if (data.json) {
 		currentJsonData = data.json;
-		el.innerText = JSON.stringify(data.json, null, 2)
-	} else if (data && data.error) {
-		el.innerText = 'Error: ' + data.error;
+		const el = document.getElementById('xml-content');
+		if (el) {
+			el.innerText = JSON.stringify(data.json, null, 2);
+		}
+	} else if (data.error) {
+		const el = document.getElementById('xml-content');
+		if (el) {
+			el.innerText = 'Error: ' + data.error;
+		}
 		showStatus('Error: ' + data.error, true);
-	} else {
-		el.innerText = 'No XML data received.'
 	}
 }
 
 function updateDisplay() {
-	const el = document.getElementById('xml-content');
-	if (!el || !currentXmlData) return;
-	
-	if (showFormatted) {
-		const formatted = formatXml(currentXmlData);
-		el.innerHTML = highlightXml(formatted);
-	} else {
-		el.textContent = currentXmlData;
-	}
+	if (!currentXmlData) return;
+	displayXml(currentXmlData, showFormatted);
 }
 
 function toggleView() {
@@ -84,95 +44,26 @@ function toggleView() {
 	updateDisplay();
 }
 
-// Parse hotkeys from JSON data
-function parseHotkeys() {
-	if (!currentJsonData || !currentJsonData.Profile || !currentJsonData.Profile.KeyMapGroups) {
-		return null;
-	}
-	
-	const keyMapGroups = currentJsonData.Profile.KeyMapGroups[0];
-	if (!keyMapGroups || !keyMapGroups.Group) {
-		return null;
-	}
-	
-	return keyMapGroups.Group;
-}
-
-// Display hotkeys view
-function showHotkeysView() {
-	const hotkeysContainer = document.getElementById('hotkeys-view');
-	const xmlContainer = document.getElementById('xml-content');
-	
-	if (!hotkeysContainer || !xmlContainer) return;
-	
-	const groups = parseHotkeys();
-	
-	if (!groups || groups.length === 0) {
-		hotkeysContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No hotkeys found in this profile.</div>';
-		hotkeysContainer.style.display = 'block';
-		xmlContainer.style.display = 'none';
-		currentView = 'hotkeys';
+// Switch to hotkeys view
+function showHotkeysViewMode() {
+	if (!currentJsonData) {
+		showStatus('No data loaded', true);
 		return;
 	}
 	
-	let html = '';
-	
-	// Process each group
-	groups.forEach(group => {
-		const groupName = group.$.Name || 'Unnamed Group';
-		html += `<div class="hotkey-group">`;
-		html += `<div class="hotkey-group-title">${escapeHtml(groupName)}</div>`;
-		html += `<table class="hotkey-table">`;
-		html += `<thead><tr><th>Action</th><th>Key</th><th>Status</th></tr></thead>`;
-		html += `<tbody>`;
-		
-		// Process keymaps in the group
-		if (group.KeyMap && Array.isArray(group.KeyMap)) {
-			group.KeyMap.forEach(keymap => {
-				const name = keymap.Name ? keymap.Name[0] : 'Unknown';
-				const event = keymap.Event ? keymap.Event[0] : '';
-				const action = keymap.Action ? keymap.Action[0] : 'bind';
-				
-				const statusClass = action === 'bind' ? 'hotkey-status-bind' : 'hotkey-status-unbind';
-				const statusText = action === 'bind' ? 'Bound' : 'Unbound';
-				
-				html += `<tr>`;
-				html += `<td>${escapeHtml(name)}</td>`;
-				html += `<td><span class="hotkey-key">${escapeHtml(event)}</span></td>`;
-				html += `<td class="${statusClass}">${statusText}</td>`;
-				html += `</tr>`;
-			});
-		}
-		
-		html += `</tbody></table></div>`;
-	});
-	
-	hotkeysContainer.innerHTML = html;
-	hotkeysContainer.style.display = 'block';
-	xmlContainer.style.display = 'none';
 	currentView = 'hotkeys';
-	console.log('Hotkeys view displayed');
+	showHotkeysView(currentJsonData);
 }
 
-// Show XML view
-function showXmlView() {
-	const hotkeysContainer = document.getElementById('hotkeys-view');
-	const xmlContainer = document.getElementById('xml-content');
+// Switch to XML view
+function showXmlViewMode() {
+	if (!currentXmlData) {
+		showStatus('No data loaded', true);
+		return;
+	}
 	
-	if (!hotkeysContainer || !xmlContainer) return;
-	
-	hotkeysContainer.style.display = 'none';
-	xmlContainer.style.display = 'block';
 	currentView = 'xml';
-	updateDisplay();
-	console.log('XML view displayed');
-}
-
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-	const div = document.createElement('div');
-	div.textContent = text;
-	return div.innerHTML;
+	showXmlView(currentXmlData, showFormatted);
 }
 
 function copyXml() {
@@ -277,8 +168,8 @@ window.toggleView = toggleView;
 window.copyXml = copyXml;
 window.selectNewDirectory = selectNewDirectory;
 window.selectNewProfile = selectNewProfile;
-window.showHotkeysView = showHotkeysView;
-window.showXmlView = showXmlView;
+window.showHotkeysViewMode = showHotkeysViewMode;
+window.showXmlViewMode = showXmlViewMode;
 
 console.log('Renderer loaded');
 console.log('window.api:', window.api);
@@ -336,14 +227,14 @@ function setupEventListeners() {
 	if (viewHotkeysBtn) {
 		viewHotkeysBtn.addEventListener('click', () => {
 			console.log('View hotkeys button clicked');
-			showHotkeysView();
+			showHotkeysViewMode();
 		});
 	}
 	
 	if (viewXmlBtn) {
 		viewXmlBtn.addEventListener('click', () => {
 			console.log('View raw XML button clicked');
-			showXmlView();
+			showXmlViewMode();
 		});
 	}
 }

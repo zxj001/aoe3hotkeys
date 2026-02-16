@@ -2,6 +2,7 @@
 
 let currentXmlData = null;
 let currentJsonData = null;
+let currentFileInfo = null; // Store directory and file path
 let showFormatted = true;
 let currentView = 'xml'; // 'xml' or 'hotkeys'
 
@@ -11,6 +12,15 @@ function showXml(data) {
 	if (data.xml) {
 		currentXmlData = data.xml;
 		currentJsonData = data.json;
+		
+		// Store file info
+		currentFileInfo = {
+			directory: data.aoe3UserDir,
+			filePath: data.userFilePath
+		};
+		
+		// Update file info display
+		updateFileInfo();
 		
 		// Display XML view by default
 		showXmlViewMode();
@@ -42,6 +52,31 @@ function updateDisplay() {
 function toggleView() {
 	showFormatted = !showFormatted;
 	updateDisplay();
+}
+
+// Update the file info display
+function updateFileInfo() {
+	const fileInfoEl = document.getElementById('file-info');
+	const directoryEl = document.getElementById('info-directory');
+	const profileEl = document.getElementById('info-profile');
+	
+	if (!fileInfoEl || !directoryEl || !profileEl) return;
+	
+	if (currentFileInfo) {
+		directoryEl.textContent = currentFileInfo.directory || '-';
+		
+		// Extract just the filename from the full path
+		if (currentFileInfo.filePath) {
+			const pathParts = currentFileInfo.filePath.split(/[\\\/]/);
+			profileEl.textContent = pathParts[pathParts.length - 1];
+		} else {
+			profileEl.textContent = '-';
+		}
+		
+		fileInfoEl.style.display = 'block';
+	} else {
+		fileInfoEl.style.display = 'none';
+	}
 }
 
 // Switch to hotkeys view

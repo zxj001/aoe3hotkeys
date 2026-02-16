@@ -42,6 +42,7 @@ async function loadAndSendXml(mainWindow) {
     // Prepare data to send to renderer
     const props = {
       aoe3UserDir: profileData.aoe3UserDir,
+      userFilePath: profileData.userFilePath,
       userFiles: profileData.userFiles,
       xml: profileData.xml,
       json: profileData.json,

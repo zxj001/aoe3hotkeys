@@ -5,7 +5,7 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-    <title>Age of Empires 3 Hotkeys</title>
+    <title>Age of Empires 3 Hotkeys Editor</title>
     <style>
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,6 +20,26 @@
       h2 {
         color: #555;
         margin-top: 20px;
+      }
+      .file-info {
+        background-color: #e8f5e9;
+        border-left: 4px solid #4CAF50;
+        padding: 12px;
+        margin: 15px 0;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .file-info-label {
+        font-weight: bold;
+        color: #2e7d32;
+        margin-right: 8px;
+      }
+      .file-info-value {
+        color: #424242;
+        font-family: 'Consolas', 'Courier New', monospace;
+      }
+      .file-info-item {
+        margin: 6px 0;
       }
       .controls {
         margin: 10px 0;
@@ -115,8 +135,19 @@
     </style>
   </head>
   <body>
-    <h1>Age of Empires 3 Hotkeys</h1>
-    <!-- XML display -->
+    <h1>Age of Empires 3 Hotkeys Editor</h1>
+
+    <div id="file-info" class="file-info" style="display: none;">
+      <div class="file-info-item">
+        <span class="file-info-label">Directory:</span>
+        <span class="file-info-value" id="info-directory">-</span>
+      </div>
+      <div class="file-info-item">
+        <span class="file-info-label">Profile:</span>
+        <span class="file-info-value" id="info-profile">-</span>
+      </div>
+    </div>
+
     <h2>Loaded XML</h2>
     <div class="controls">
       <button id="view-hotkeys">View Hotkeys</button>

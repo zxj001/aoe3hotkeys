@@ -2497,13 +2497,33 @@
 		</Group>
 		<Group Name="War Academy Hotkeys">
 			<KeyMap>
-				<Name>Forbidden Army</Name>
+				<Name>Old Han Army</Name>
+				<Event>y</Event>
+				<Action>bind</Action>
+			</KeyMap>
+			<KeyMap>
+				<Name>Ming Army</Name>
 				<Event>t</Event>
 				<Action>bind</Action>
 			</KeyMap>
 			<KeyMap>
+				<Name>Standard Army</Name>
+				<Event>r</Event>
+				<Action>bind</Action>
+			</KeyMap>
+			<KeyMap>
+				<Name>Territorial Army</Name>
+				<Event>e</Event>
+				<Action>bind</Action>
+			</KeyMap>
+			<KeyMap>
+				<Name>Forbidden Army</Name>
+				<Event>w</Event>
+				<Action>bind</Action>
+			</KeyMap>
+			<KeyMap>
 				<Name>Imperial Army</Name>
-				<Event>y</Event>
+				<Event>q</Event>
 				<Action>bind</Action>
 			</KeyMap>
 		</Group>

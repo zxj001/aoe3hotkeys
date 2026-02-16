@@ -32,6 +32,16 @@ function createWindow () {
   // and load the index.html of the app.
   mainWindow.loadFile('index.html')
 
+  // Wait for the window to finish loading before loading XML
+  mainWindow.webContents.on('did-finish-load', () => {
+    loadAndSendXml(mainWindow);
+  });
+
+  // Open the DevTools for debugging
+  // mainWindow.webContents.openDevTools()
+}
+
+function loadAndSendXml(mainWindow) {
   // Load hotkeyfile
   const DEFAULT_AOE3_USER_DIR = path.join(homedir, "Documents/My Games/Age of Empires 3/Users3")
   console.log(DEFAULT_AOE3_USER_DIR)
@@ -132,16 +142,16 @@ function createWindow () {
         console.dir(result);
       }
       // Send raw XML text and parsed JSON to renderer for display
+      console.log('Sending XML data to renderer...');
       try {
         mainWindow.webContents.send('xml-data', props)
+        console.log('XML data sent successfully');
       } catch (sendErr) {
         props.error = sendErr.message
-        console.error('Failed to send xml-data to renderer', props)
+        console.error('Failed to send xml-data to renderer', sendErr)
       }
       console.log('Done');
   });
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished

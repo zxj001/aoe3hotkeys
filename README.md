@@ -19,8 +19,8 @@ An Electron application for viewing and managing Age of Empires 3 hotkey configu
 
 ### Renderer Files
 - `renderer.js` - Orchestrates views, handles IPC communication, manages state
-- `xmlView.js` - XML formatting and syntax highlighting functionality
-- `hotkeysView.js` - Hotkey parsing and table rendering functionality
+- `view/xmlView.js` - XML formatting and syntax highlighting functionality
+- `view/hotkeysView.js` - Hotkey parsing and table rendering functionality
 - `aoe3FileLoader.js` - File system operations for loading AoE3 profiles
 
 ## Development Roadmap

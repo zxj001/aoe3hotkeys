@@ -1,10 +1,11 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, clipboard } = require('electron')
 const path = require('path')
-const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile } = require('./aoe3FileLoader')
+const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile, loadDefaultKeymap } = require('./aoe3FileLoader')
 
 let mainWindow = null;
 let currentDirectory = null; // Track the currently loaded directory
+let defaultKeymapData = null; // Store the default keymap data
 
 function createWindow () {
   // Create the browser window.
@@ -33,6 +34,12 @@ async function loadAndSendXml(mainWindow) {
     console.log('Loading AOE3 profile...')
     const profileData = await loadAoe3Profile(mainWindow)
     
+    // Load default keymap if not already loaded
+    if (!defaultKeymapData) {
+      defaultKeymapData = await loadDefaultKeymap()
+      console.log('Default keymap loaded:', defaultKeymapData ? 'success' : 'failed')
+    }
+    
     // Store the current directory for future dialog defaults
     if (profileData.aoe3UserDir) {
       currentDirectory = profileData.aoe3UserDir
@@ -46,6 +53,7 @@ async function loadAndSendXml(mainWindow) {
       userFiles: profileData.userFiles,
       xml: profileData.xml,
       json: profileData.json,
+      defaultKeymap: defaultKeymapData,
       error: profileData.error
     }
     
@@ -59,7 +67,8 @@ async function loadAndSendXml(mainWindow) {
     mainWindow.webContents.send('xml-data', {
       error: err.message,
       xml: null,
-      json: null
+      json: null,
+      defaultKeymap: defaultKeymapData
     })
   }
 }
@@ -101,6 +110,7 @@ ipcMain.handle('select-new-directory', async (event) => {
       userFilePath: selectedFile,
       xml: parseResult.xml,
       json: parseResult.json,
+      defaultKeymap: defaultKeymapData,
       error: parseResult.error
     }
     
@@ -138,6 +148,7 @@ ipcMain.handle('select-new-profile', async (event) => {
       userFilePath: selectedFile,
       xml: parseResult.xml,
       json: parseResult.json,
+      defaultKeymap: defaultKeymapData,
       error: parseResult.error
     }
     

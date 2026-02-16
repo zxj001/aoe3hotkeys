@@ -2,6 +2,7 @@
 
 let currentXmlData = null;
 let currentJsonData = null;
+let currentDefaultKeymap = null; // Store default keymap data
 let currentFileInfo = null; // Store directory and file path
 let showFormatted = true;
 let currentView = 'xml'; // 'xml' or 'hotkeys'
@@ -12,6 +13,7 @@ function showXml(data) {
 	if (data.xml) {
 		currentXmlData = data.xml;
 		currentJsonData = data.json;
+		currentDefaultKeymap = data.defaultKeymap; // Store default keymap
 		
 		// Store file info
 		currentFileInfo = {
@@ -87,7 +89,7 @@ function showHotkeysViewMode() {
 	}
 	
 	currentView = 'hotkeys';
-	showHotkeysView(currentJsonData);
+	showHotkeysView(currentJsonData, currentDefaultKeymap);
 	
 	// Hide the toggle raw/formatted button in hotkeys view
 	const toggleBtn = document.getElementById('toggle-raw');

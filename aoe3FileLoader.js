@@ -163,6 +163,43 @@ function parseXmlFile(filePath) {
 }
 
 /**
+ * Load and parse the default keymap XML file
+ * @returns {Promise<object|null>} Parsed default keymap JSON or null if not found
+ */
+function loadDefaultKeymap() {
+  return new Promise((resolve) => {
+    const defaultKeymapPath = path.join(__dirname, 'example', 'defaultkeymap.xml')
+    console.log('Loading default keymap from:', defaultKeymapPath)
+    
+    try {
+      // Check if file exists
+      if (!fs.existsSync(defaultKeymapPath)) {
+        console.warn('Default keymap file not found')
+        resolve(null)
+        return
+      }
+      
+      // The default keymap is UTF-8 encoded
+      const defaultKeymapData = fs.readFileSync(defaultKeymapPath, 'utf8')
+      const parser = new xml2js.Parser()
+      
+      parser.parseString(defaultKeymapData, function (err, result) {
+        if (err) {
+          console.error('Default keymap parse error', err)
+          resolve(null)
+        } else {
+          console.log('Default keymap loaded successfully')
+          resolve(result)
+        }
+      })
+    } catch (err) {
+      console.error('Default keymap load error:', err)
+      resolve(null)
+    }
+  })
+}
+
+/**
  * Main function to load AOE3 profile data
  * @param {BrowserWindow} parentWindow - The parent window for dialogs
  * @returns {Promise<object>} Object containing directory, files, xml, and json data
@@ -206,5 +243,6 @@ module.exports = {
   selectXmlFile,
   promptForXmlFile,
   parseXmlFile,
-  isXmlFile
+  isXmlFile,
+  loadDefaultKeymap
 }

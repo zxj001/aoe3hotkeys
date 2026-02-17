@@ -188,7 +188,7 @@ function getAvailableDefaultKeymaps() {
         if (path.extname(file).toLowerCase() === '.xml') {
           const filePath = path.join(customProfilesDir, file)
           keymaps.push({
-            name: path.basename(file, '.xml'),
+            name: 'MrMilos ' + path.basename(file, '.xml'),
             path: filePath,
             encoding: 'UCS-2' // Custom profiles use UTF-16
           })

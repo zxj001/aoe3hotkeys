@@ -138,7 +138,9 @@ async function selectDefaultKeymap() {
 			
 			// Refresh the hotkeys view if currently displayed
 			if (currentView === 'hotkeys' && currentJsonData) {
-				showHotkeysView(currentJsonData, currentDefaultKeymap);
+				const filterInput = document.getElementById('hotkeys-filter');
+				const filterText = filterInput ? filterInput.value : '';
+				showHotkeysView(currentJsonData, currentDefaultKeymap, filterText);
 			}
 			
 			showStatus('Default keymap changed successfully');
@@ -157,13 +159,30 @@ function showHotkeysViewMode() {
 	}
 	
 	currentView = 'hotkeys';
-	showHotkeysView(currentJsonData, currentDefaultKeymap);
+	
+	// Get current filter value
+	const filterInput = document.getElementById('hotkeys-filter');
+	const filterText = filterInput ? filterInput.value : '';
+	
+	showHotkeysView(currentJsonData, currentDefaultKeymap, filterText);
 	
 	// Hide the toggle raw/formatted button in hotkeys view
 	const toggleBtn = document.getElementById('toggle-raw');
 	if (toggleBtn) {
 		toggleBtn.style.display = 'none';
 	}
+}
+
+// Apply filter to hotkeys view
+function applyHotkeysFilter() {
+	if (currentView !== 'hotkeys' || !currentJsonData) {
+		return;
+	}
+	
+	const filterInput = document.getElementById('hotkeys-filter');
+	const filterText = filterInput ? filterInput.value : '';
+	
+	showHotkeysView(currentJsonData, currentDefaultKeymap, filterText);
 }
 
 // Switch to XML view
@@ -175,6 +194,12 @@ function showXmlViewMode() {
 	
 	currentView = 'xml';
 	showXmlView(currentXmlData, showFormatted);
+	
+	// Hide filter container when in XML view
+	const filterContainer = document.getElementById('hotkeys-filter-container');
+	if (filterContainer) {
+		filterContainer.style.display = 'none';
+	}
 	
 	// Show the toggle raw/formatted button in XML view
 	const toggleBtn = document.getElementById('toggle-raw');
@@ -362,6 +387,16 @@ function setupEventListeners() {
 		defaultKeymapSelector.addEventListener('change', () => {
 			console.log('Default keymap selector changed');
 			selectDefaultKeymap();
+		});
+	}
+	
+	// Hotkeys filter input
+	const hotkeysFilter = document.getElementById('hotkeys-filter');
+	if (hotkeysFilter) {
+		// Use input event for real-time filtering
+		hotkeysFilter.addEventListener('input', () => {
+			console.log('Hotkeys filter changed');
+			applyHotkeysFilter();
 		});
 	}
 }

@@ -176,15 +176,12 @@ function parseHotkeys(jsonData) {
  * @param {Object} defaultGroup - Default group object with actions
  * @param {Map} userMap - Map of action names to user's current bindings
  * @param {Map} userGroupMap - Map of group name to user's actions in that group
- * @returns {string} HTML string for the group
+ * @param {string} filterText - Text to filter actions by (optional)
+ * @returns {string} HTML string for the group, or empty if no matches
  */
-function renderHotkeyGroup(defaultGroup, userMap, userGroupMap) {
+function renderHotkeyGroup(defaultGroup, userMap, userGroupMap, filterText = '') {
 	const groupName = defaultGroup.name || 'Unnamed Group';
-	let html = `<div class="hotkey-group">`;
-	html += `<div class="hotkey-group-title">${escapeHtml(groupName)}</div>`;
-	html += `<table class="hotkey-table">`;
-	html += `<thead><tr><th>Action</th><th>Current Key</th><th>Default Key</th><th>Status</th></tr></thead>`;
-	html += `<tbody>`;
+	const filter = filterText.toLowerCase().trim();
 	
 	// Create a set of all action names we'll display (union of default and user)
 	const allActionNames = new Set();
@@ -211,6 +208,10 @@ function renderHotkeyGroup(defaultGroup, userMap, userGroupMap) {
 		}
 	});
 	
+	// Build rows, filtering as needed
+	let rowsHtml = '';
+	let matchCount = 0;
+	
 	// Render all actions
 	allActionNames.forEach(actionName => {
 		const actionData = actionDataMap.get(actionName);
@@ -218,6 +219,22 @@ function renderHotkeyGroup(defaultGroup, userMap, userGroupMap) {
 		const currentKey = userBinding ? userBinding.key : '';
 		const userAction = userBinding ? userBinding.action : null;
 		const defaultKey = actionData.defaultKey;
+		
+		// Apply filter if specified
+		if (filter) {
+			const displayName = actionData.displayName.toLowerCase();
+			const currentKeyLower = currentKey.toLowerCase();
+			const defaultKeyLower = defaultKey.toLowerCase();
+			
+			// Check if any field matches the filter
+			if (!displayName.includes(filter) && 
+			    !currentKeyLower.includes(filter) && 
+			    !defaultKeyLower.includes(filter)) {
+				return; // Skip this action
+			}
+		}
+		
+		matchCount++;
 		
 		// Determine status
 		let statusClass = '';
@@ -249,14 +266,26 @@ function renderHotkeyGroup(defaultGroup, userMap, userGroupMap) {
 		const displayKey = currentKey || defaultKey;
 		const keyClass = userBinding && userAction === 'bind' ? 'hotkey-key' : 'hotkey-key hotkey-default';
 		
-		html += `<tr>`;
-		html += `<td>${escapeHtml(actionData.displayName)}</td>`;
-		html += `<td><span class="${keyClass}">${escapeHtml(displayKey)}</span></td>`;
-		html += `<td><span class="hotkey-key hotkey-default">${escapeHtml(defaultKey || '-')}</span></td>`;
-		html += `<td class="${statusClass}">${statusText}</td>`;
-		html += `</tr>`;
+		rowsHtml += `<tr>`;
+		rowsHtml += `<td>${escapeHtml(actionData.displayName)}</td>`;
+		rowsHtml += `<td><span class="${keyClass}">${escapeHtml(displayKey)}</span></td>`;
+		rowsHtml += `<td><span class="hotkey-key hotkey-default">${escapeHtml(defaultKey || '-')}</span></td>`;
+		rowsHtml += `<td class="${statusClass}">${statusText}</td>`;
+		rowsHtml += `</tr>`;
 	});
 	
+	// If no matches, return empty string (don't render this group)
+	if (matchCount === 0) {
+		return '';
+	}
+	
+	// Build the group HTML
+	let html = `<div class="hotkey-group">`;
+	html += `<div class="hotkey-group-title">${escapeHtml(groupName)}</div>`;
+	html += `<table class="hotkey-table">`;
+	html += `<thead><tr><th>Action</th><th>Current Key</th><th>Default Key</th><th>Status</th></tr></thead>`;
+	html += `<tbody>`;
+	html += rowsHtml;
 	html += `</tbody></table></div>`;
 	return html;
 }
@@ -267,9 +296,10 @@ function renderHotkeyGroup(defaultGroup, userMap, userGroupMap) {
  * @param {Map} userMap - Map of action names to user's current bindings
  * @param {Map} userGroupMap - Map of group name to user's actions in that group
  * @param {Array} userGroups - Array of user hotkey groups for user-only groups
+ * @param {string} filterText - Text to filter actions by (optional)
  * @returns {string} HTML string for all groups
  */
-function renderAllHotkeys(defaultGroups, userMap, userGroupMap, userGroups) {
+function renderAllHotkeys(defaultGroups, userMap, userGroupMap, userGroups, filterText = '') {
 	// Create a set of all group names (union of default and user groups)
 	const allGroupNames = new Set();
 	const groupDataMap = new Map();
@@ -314,24 +344,37 @@ function renderAllHotkeys(defaultGroups, userMap, userGroupMap, userGroups) {
 	
 	// Render all groups
 	let html = '';
+	let totalGroupsRendered = 0;
+	
 	allGroupNames.forEach(groupName => {
 		const groupData = groupDataMap.get(groupName);
 		if (groupData && groupData.defaultGroup) {
-			html += renderHotkeyGroup(groupData.defaultGroup, userMap, userGroupMap);
+			const groupHtml = renderHotkeyGroup(groupData.defaultGroup, userMap, userGroupMap, filterText);
+			if (groupHtml) {
+				html += groupHtml;
+				totalGroupsRendered++;
+			}
 		}
 	});
 	
-	return html;
+	// Show message if filter produced no results
+	if (filterText && totalGroupsRendered === 0) {
+		return '<div style="padding: 20px; text-align: center; color: #999;">No hotkeys match the filter.</div>';
+	}
+	
+	return html || '<div style="padding: 20px; text-align: center; color: #999;">No hotkeys found.</div>';
 }
 
 /**
  * Show hotkeys view and hide other views
  * @param {Object} jsonData - Parsed XML as JSON
  * @param {Object} defaultKeymapData - Parsed default keymap XML as JSON
+ * @param {string} filterText - Text to filter actions by (optional)
  */
-function showHotkeysView(jsonData, defaultKeymapData) {
+function showHotkeysView(jsonData, defaultKeymapData, filterText = '') {
 	const hotkeysContainer = document.getElementById('hotkeys-view');
 	const xmlContainer = document.getElementById('xml-content');
+	const filterContainer = document.getElementById('hotkeys-filter-container');
 	
 	if (!hotkeysContainer || !xmlContainer) return;
 	
@@ -339,11 +382,16 @@ function showHotkeysView(jsonData, defaultKeymapData) {
 	const defaultGroups = parseDefaultKeymap(defaultKeymapData);
 	const userMap = createUserKeymapLookup(userGroups);
 	const userGroupMap = createUserGroupMap(userGroups);
-	const html = renderAllHotkeys(defaultGroups, userMap, userGroupMap, userGroups);
+	const html = renderAllHotkeys(defaultGroups, userMap, userGroupMap, userGroups, filterText);
 	
 	hotkeysContainer.innerHTML = html;
 	hotkeysContainer.style.display = 'block';
 	xmlContainer.style.display = 'none';
+	
+	// Show filter container when in hotkeys view
+	if (filterContainer) {
+		filterContainer.style.display = 'block';
+	}
 	
 	console.log('Hotkeys view displayed with', defaultGroups.length, 'default groups,', userMap.size, 'user bindings, and', userGroups ? userGroups.length : 0, 'user groups');
 }

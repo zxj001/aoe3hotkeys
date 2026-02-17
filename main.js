@@ -1,10 +1,11 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, clipboard } = require('electron')
 const path = require('path')
-const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile, loadDefaultKeymap, getAvailableDefaultKeymaps } = require('./aoe3FileLoader')
+const { loadAoe3Profile, promptForDirectory, findXmlFiles, promptForXmlFile, parseXmlFile, loadDefaultKeymap, getAvailableDefaultKeymaps, saveXmlFile, mergeKeyMapGroups } = require('./aoe3FileLoader')
 
 let mainWindow = null;
 let currentDirectory = null; // Track the currently loaded directory
+let currentUserFilePath = null; // Track the currently loaded user file path
 let defaultKeymapData = null; // Store the default keymap data
 let availableDefaultKeymaps = []; // List of available default keymaps
 let currentDefaultKeymapIndex = 0; // Index of currently selected default keymap
@@ -53,6 +54,12 @@ async function loadAndSendXml(mainWindow) {
     if (profileData.aoe3UserDir) {
       currentDirectory = profileData.aoe3UserDir
       console.log('Current directory set to:', currentDirectory)
+    }
+    
+    // Store the current user file path
+    if (profileData.userFilePath) {
+      currentUserFilePath = profileData.userFilePath
+      console.log('Current user file path set to:', currentUserFilePath)
     }
     
     // Prepare data to send to renderer
@@ -116,6 +123,9 @@ ipcMain.handle('select-new-directory', async (event) => {
       throw new Error('No file selected')
     }
     
+    // Update current user file path
+    currentUserFilePath = selectedFile
+    
     // Parse and send
     const parseResult = await parseXmlFile(selectedFile)
     const props = {
@@ -155,6 +165,9 @@ ipcMain.handle('select-new-profile', async (event) => {
     
     // Update current directory from selected file
     currentDirectory = path.dirname(selectedFile)
+    
+    // Update current user file path
+    currentUserFilePath = selectedFile
     
     // Parse and send
     const parseResult = await parseXmlFile(selectedFile)
@@ -216,6 +229,110 @@ ipcMain.handle('write-to-clipboard', async (event, text) => {
     return { success: true }
   } catch (err) {
     console.error('Error writing to clipboard:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Load default hotkeys into current profile
+ipcMain.handle('load-default-hotkeys', async (event) => {
+  try {
+    console.log('User requested to load default hotkeys')
+    
+    if (!defaultKeymapData) {
+      throw new Error('No default keymap loaded')
+    }
+    
+    if (!mainWindow) {
+      throw new Error('Main window not available')
+    }
+    
+    // Get current XML data from renderer
+    // We'll need to send it back
+    return {
+      success: true,
+      needsMerge: true,
+      defaultKeymap: defaultKeymapData
+    }
+  } catch (err) {
+    console.error('Error loading default hotkeys:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Merge default hotkeys into profile XML
+ipcMain.handle('merge-hotkeys', async (event, currentXml) => {
+  try {
+    console.log('Merging default hotkeys into profile')
+    
+    if (!defaultKeymapData) {
+      throw new Error('No default keymap loaded')
+    }
+    
+    // Merge KeyMapGroups
+    const mergedXml = mergeKeyMapGroups(currentXml, defaultKeymapData)
+    
+    // Parse the merged XML to send back as JSON
+    const parseResult = await parseXmlFile(currentUserFilePath)
+    
+    return {
+      success: true,
+      xml: mergedXml,
+      json: parseResult.json
+    }
+  } catch (err) {
+    console.error('Error merging hotkeys:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Save profile to file
+ipcMain.handle('save-profile', async (event, xmlData) => {
+  try {
+    console.log('Saving profile to file:', currentUserFilePath)
+    
+    if (!currentUserFilePath) {
+      throw new Error('No file path available')
+    }
+    
+    await saveXmlFile(currentUserFilePath, xmlData)
+    console.log('Profile saved successfully')
+    
+    return { success: true }
+  } catch (err) {
+    console.error('Error saving profile:', err)
+    throw err
+  }
+})
+
+// IPC Handler: Reload profile from disk
+ipcMain.handle('reload-profile', async (event) => {
+  try {
+    console.log('Reloading profile from disk:', currentUserFilePath)
+    
+    if (!currentUserFilePath) {
+      throw new Error('No file path available')
+    }
+    
+    // Re-parse the file
+    const parseResult = await parseXmlFile(currentUserFilePath)
+    
+    const props = {
+      aoe3UserDir: currentDirectory,
+      userFilePath: currentUserFilePath,
+      xml: parseResult.xml,
+      json: parseResult.json,
+      defaultKeymap: defaultKeymapData,
+      availableDefaultKeymaps: availableDefaultKeymaps.map(k => k.name),
+      currentDefaultKeymapIndex: currentDefaultKeymapIndex,
+      error: parseResult.error
+    }
+    
+    mainWindow.webContents.send('xml-data', props)
+    console.log('Profile reloaded successfully')
+    
+    return { success: true }
+  } catch (err) {
+    console.error('Error reloading profile:', err)
     throw err
   }
 })

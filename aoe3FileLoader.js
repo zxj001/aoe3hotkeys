@@ -281,6 +281,101 @@ async function loadAoe3Profile(parentWindow) {
   }
 }
 
+/**
+ * Save XML data to a file
+ * @param {string} filePath - Path to the file to save
+ * @param {string} xmlData - XML string to save
+ * @returns {Promise<void>}
+ */
+function saveXmlFile(filePath, xmlData) {
+  return new Promise((resolve, reject) => {
+    console.log('Saving file:', filePath)
+    
+    try {
+      // The user profile XML file is UTF-16 encoded (UCS-2)
+      fs.writeFileSync(filePath, xmlData, "UCS-2")
+      console.log('File saved successfully')
+      resolve()
+    } catch (err) {
+      console.error('File save error:', err)
+      reject(err)
+    }
+  })
+}
+
+/**
+ * Merge KeyMapGroups from source JSON into target XML string
+ * @param {string} targetXml - Target XML string (user profile)
+ * @param {Object} sourceJson - Source parsed JSON (default keymap)
+ * @returns {string} Modified XML string with KeyMapGroups replaced
+ */
+function mergeKeyMapGroups(targetXml, sourceJson) {
+  console.log('Merging KeyMapGroups')
+  
+  // Extract KeyMapGroups from source JSON
+  let sourceKeyMapGroups = null
+  
+  // Check if source is default keymap format
+  if (sourceJson.DefaultKeyMap && sourceJson.DefaultKeyMap.KeyMapGroup) {
+    // Convert default keymap format to profile format
+    const groups = sourceJson.DefaultKeyMap.KeyMapGroup
+    sourceKeyMapGroups = {
+      Group: groups.map(group => {
+        const newGroup = {
+          $: { Name: group.$.name || 'Unnamed Group' },
+          KeyMap: []
+        }
+        
+        if (group.KeyMapData && Array.isArray(group.KeyMapData)) {
+          newGroup.KeyMap = group.KeyMapData.map(keyData => ({
+            Name: keyData.Name || [],
+            Event: keyData.Event || [],
+            Action: ['bind']
+          }))
+        }
+        
+        return newGroup
+      })
+    }
+  }
+  // Check if source is profile format
+  else if (sourceJson.Profile && sourceJson.Profile.KeyMapGroups) {
+    sourceKeyMapGroups = sourceJson.Profile.KeyMapGroups[0]
+  }
+  
+  if (!sourceKeyMapGroups) {
+    throw new Error('Source does not contain valid KeyMapGroups')
+  }
+  
+  // Convert to XML
+  const builder = new xml2js.Builder({
+    headless: true,
+    renderOpts: { pretty: true, indent: '\t' }
+  })
+  
+  const keyMapGroupsXml = builder.buildObject({ KeyMapGroups: sourceKeyMapGroups })
+  
+  // Find and replace KeyMapGroups section in target XML
+  const keyMapGroupsStart = targetXml.indexOf('<KeyMapGroups>')
+  const keyMapGroupsEnd = targetXml.indexOf('</KeyMapGroups>') + '</KeyMapGroups>'.length
+  
+  if (keyMapGroupsStart === -1 || keyMapGroupsEnd === -1) {
+    throw new Error('Could not find KeyMapGroups section in target XML')
+  }
+  
+  // Replace the KeyMapGroups section
+  const beforeKeyMapGroups = targetXml.substring(0, keyMapGroupsStart)
+  const afterKeyMapGroups = targetXml.substring(keyMapGroupsEnd)
+  
+  // Clean up the generated XML (remove xml declaration if present)
+  let cleanKeyMapGroupsXml = keyMapGroupsXml.replace(/<\?xml[^>]*\?>\s*/g, '')
+  
+  const newXml = beforeKeyMapGroups + cleanKeyMapGroupsXml + afterKeyMapGroups
+  
+  console.log('KeyMapGroups merged successfully')
+  return newXml
+}
+
 module.exports = {
   loadAoe3Profile,
   selectAoe3Directory,
@@ -291,5 +386,7 @@ module.exports = {
   parseXmlFile,
   isXmlFile,
   loadDefaultKeymap,
-  getAvailableDefaultKeymaps
+  getAvailableDefaultKeymaps,
+  saveXmlFile,
+  mergeKeyMapGroups
 }

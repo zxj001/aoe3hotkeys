@@ -280,6 +280,110 @@ async function selectNewProfile() {
 	}
 }
 
+// Load default hotkeys into current profile
+async function loadDefaultHotkeys() {
+	if (!window.api || !window.api.loadDefaultHotkeys || !window.api.mergeHotkeys) {
+		alert('API not available');
+		return;
+	}
+	
+	if (!currentXmlData) {
+		showStatus('No profile loaded', true);
+		return;
+	}
+	
+	// Confirm with user
+	if (!confirm('This will replace all hotkeys in your current profile with the selected default keymap. Continue?')) {
+		return;
+	}
+	
+	showStatus('Loading default hotkeys...');
+	try {
+		// First get the default keymap data
+		const loadResult = await window.api.loadDefaultHotkeys();
+		
+		if (loadResult.success && loadResult.needsMerge) {
+			// Merge the hotkeys
+			const mergeResult = await window.api.mergeHotkeys(currentXmlData);
+			
+			if (mergeResult.success) {
+				// Update current data
+				currentXmlData = mergeResult.xml;
+				currentJsonData = mergeResult.json;
+				
+				// Refresh the view
+				if (currentView === 'hotkeys') {
+					const filterInput = document.getElementById('hotkeys-filter');
+					const filterText = filterInput ? filterInput.value : '';
+					showHotkeysView(currentJsonData, currentDefaultKeymap, filterText);
+				} else {
+					showXmlView(currentXmlData, showFormatted);
+				}
+				
+				showStatus('Default hotkeys loaded successfully! Remember to save.');
+			}
+		}
+	} catch (err) {
+		console.error('Error loading default hotkeys:', err);
+		showStatus('Error: ' + err.message, true);
+	}
+}
+
+// Save profile to file
+async function saveProfile() {
+	if (!window.api || !window.api.saveProfile) {
+		alert('API not available');
+		return;
+	}
+	
+	if (!currentXmlData) {
+		showStatus('No profile data to save', true);
+		return;
+	}
+	
+	// Confirm with user
+	if (!confirm('This will overwrite your profile file. Continue?')) {
+		return;
+	}
+	
+	showStatus('Saving profile...');
+	try {
+		const result = await window.api.saveProfile(currentXmlData);
+		
+		if (result.success) {
+			showStatus('Profile saved successfully!');
+		}
+	} catch (err) {
+		console.error('Error saving profile:', err);
+		showStatus('Error: ' + err.message, true);
+	}
+}
+
+// Reload profile from disk
+async function reloadProfile() {
+	if (!window.api || !window.api.reloadProfile) {
+		alert('API not available');
+		return;
+	}
+	
+	// Confirm with user
+	if (!confirm('This will discard any unsaved changes and reload the profile from disk. Continue?')) {
+		return;
+	}
+	
+	showStatus('Reloading profile...');
+	try {
+		const result = await window.api.reloadProfile();
+		
+		if (result.success) {
+			showStatus('Profile reloaded successfully');
+		}
+	} catch (err) {
+		console.error('Error reloading profile:', err);
+		showStatus('Error: ' + err.message, true);
+	}
+}
+
 // Show status message
 function showStatus(message, isError = false) {
 	console.log('showStatus called with message:', message, 'isError:', isError);
@@ -329,6 +433,9 @@ function setupEventListeners() {
 	const copyBtn = document.getElementById('copy-xml');
 	const viewHotkeysBtn = document.getElementById('view-hotkeys');
 	const viewXmlBtn = document.getElementById('view-raw-xml');
+	const loadDefaultBtn = document.getElementById('load-default-hotkeys');
+	const saveBtn = document.getElementById('save-profile');
+	const reloadBtn = document.getElementById('reload-profile');
 	
 	console.log('Buttons found:', {
 		selectDir: !!selectDirBtn,
@@ -336,7 +443,10 @@ function setupEventListeners() {
 		toggle: !!toggleBtn,
 		copy: !!copyBtn,
 		viewHotkeys: !!viewHotkeysBtn,
-		viewXml: !!viewXmlBtn
+		viewXml: !!viewXmlBtn,
+		loadDefault: !!loadDefaultBtn,
+		save: !!saveBtn,
+		reload: !!reloadBtn
 	});
 	
 	if (selectDirBtn) {
@@ -397,6 +507,30 @@ function setupEventListeners() {
 		hotkeysFilter.addEventListener('input', () => {
 			console.log('Hotkeys filter changed');
 			applyHotkeysFilter();
+		});
+	}
+	
+	// Load default hotkeys button
+	if (loadDefaultBtn) {
+		loadDefaultBtn.addEventListener('click', () => {
+			console.log('Load default hotkeys button clicked');
+			loadDefaultHotkeys();
+		});
+	}
+	
+	// Save profile button
+	if (saveBtn) {
+		saveBtn.addEventListener('click', () => {
+			console.log('Save profile button clicked');
+			saveProfile();
+		});
+	}
+	
+	// Reload profile button
+	if (reloadBtn) {
+		reloadBtn.addEventListener('click', () => {
+			console.log('Reload profile button clicked');
+			reloadProfile();
 		});
 	}
 }

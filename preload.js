@@ -6,7 +6,11 @@ contextBridge.exposeInMainWorld('api', {
   selectNewDirectory: () => ipcRenderer.invoke('select-new-directory'),
   selectNewProfile: () => ipcRenderer.invoke('select-new-profile'),
   selectDefaultKeymap: (index) => ipcRenderer.invoke('select-default-keymap', index),
-  writeToClipboard: (text) => ipcRenderer.invoke('write-to-clipboard', text)
+  writeToClipboard: (text) => ipcRenderer.invoke('write-to-clipboard', text),
+  loadDefaultHotkeys: () => ipcRenderer.invoke('load-default-hotkeys'),
+  mergeHotkeys: (currentXml) => ipcRenderer.invoke('merge-hotkeys', currentXml),
+  saveProfile: (xmlData) => ipcRenderer.invoke('save-profile', xmlData),
+  reloadProfile: () => ipcRenderer.invoke('reload-profile')
 })
 
 window.addEventListener('DOMContentLoaded', () => {
